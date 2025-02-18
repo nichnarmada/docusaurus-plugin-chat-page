@@ -9,3 +9,7 @@ declare module "@theme/Layout" {
 
   export default function Layout(props: Props): JSX.Element
 }
+
+declare module "@docusaurus/useGlobalData" {
+  export function usePluginData<T = unknown>(pluginName: string): T
+}

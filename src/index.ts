@@ -1,6 +1,8 @@
-import { LoadContext, Plugin, ThemeConfig } from "@docusaurus/types"
+import { LoadContext, Plugin } from "@docusaurus/types"
 import { normalizeUrl } from "@docusaurus/utils"
 import * as path from "path"
+import { loadContent } from "./content"
+import type { ContentAuditContent } from "./types"
 
 export interface PluginOptions {
   label?: string
@@ -14,7 +16,7 @@ interface NavbarItem {
   position: "left" | "right"
 }
 
-interface DocusaurusThemeConfig extends ThemeConfig {
+interface DocusaurusThemeConfig {
   navbar?: {
     items?: NavbarItem[]
   }
@@ -29,8 +31,8 @@ function normalizePath(inputPath: string): string {
 export default function pluginContentAudit(
   context: LoadContext,
   options: PluginOptions = {}
-): Plugin<void> & {
-  getThemeConfig: (config: {
+): Plugin<ContentAuditContent> & {
+  getThemeConfig: (props: {
     themeConfig: DocusaurusThemeConfig
   }) => DocusaurusThemeConfig
 } {
@@ -59,8 +61,15 @@ export default function pluginContentAudit(
       return path.resolve(__dirname, "./theme")
     },
 
-    async contentLoaded({ actions }) {
-      const { addRoute } = actions
+    async loadContent() {
+      return loadContent(context)
+    },
+
+    async contentLoaded({ actions, content }) {
+      const { addRoute, setGlobalData } = actions
+
+      // Make content available to theme components
+      setGlobalData(content)
 
       // Add route for the audit dashboard
       addRoute({
@@ -71,13 +80,13 @@ export default function pluginContentAudit(
     },
 
     // Add navbar/footer items
-    getThemeConfig(props) {
+    getThemeConfig({ themeConfig }: { themeConfig: DocusaurusThemeConfig }) {
       if (!showNavbar) {
-        return props.themeConfig
+        return themeConfig
       }
 
       // Add navbar item
-      const navbarItems = props.themeConfig.navbar?.items || []
+      const navbarItems = themeConfig.navbar?.items || []
       const newNavbarItem: NavbarItem = {
         to: routePath,
         label: label,
@@ -85,9 +94,9 @@ export default function pluginContentAudit(
       }
 
       return {
-        ...props.themeConfig,
+        ...themeConfig,
         navbar: {
-          ...props.themeConfig.navbar,
+          ...themeConfig.navbar,
           items: [...navbarItems, newNavbarItem],
         },
       }
