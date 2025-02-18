@@ -4,25 +4,40 @@
   "description": "A Docusaurus plugin for auditing content quality and metadata",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
+  "files": [
+    "lib/**/*.js",
+    "lib/**/*.d.ts",
+    "lib/theme/**/*"
+  ],
   "scripts": {
-    "build": "tsc --build",
-    "watch": "tsc --build --watch"
+    "build": "tsc --build && yarn build:theme",
+    "watch": "tsc --build --watch",
+    "dev": "npm run watch",
+    "clean": "rm -rf lib/",
+    "prebuild": "npm run clean",
+    "build:theme": "tsc --project src/theme/tsconfig.json"
   },
   "dependencies": {
     "@docusaurus/core": "^3.7.0",
     "@docusaurus/types": "^3.7.0",
     "@docusaurus/utils": "^3.0.0",
     "@docusaurus/theme-common": "^3.7.0",
-    "@docusaurus/theme-classic": "^3.7.0"
+    "@docusaurus/theme-classic": "^3.7.0",
+    "unified": "^10.1.2",
+    "remark-parse": "^10.0.2",
+    "remark-frontmatter": "^4.0.1"
   },
   "peerDependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
     "@docusaurus/tsconfig": "^3.7.0",
     "@types/react": "^18.2.0",
-    "typescript": "~5.6.2"
+    "@types/node": "^20.0.0",
+    "@types/unified": "^8.4.0",
+    "typescript": "~5.2.2",
+    "rimraf": "^5.0.5"
   },
   "engines": {
     "node": ">=18.0"

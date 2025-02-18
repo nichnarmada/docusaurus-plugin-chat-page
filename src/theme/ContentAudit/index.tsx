@@ -1,51 +1,13 @@
 import React from "react"
 import Layout from "@theme/Layout"
-import type { ReactElement } from "react"
+import type { ReactNode } from "react"
 
-interface Props {
-  content: {
-    docs: {
-      filePath: string
-      content: string
-      metadata: any
-    }[]
-    pages: {
-      filePath: string
-      content: string
-      metadata: any
-    }[]
-  }
-}
-
-export default function ContentAudit({ content }: Props): ReactElement {
+export default function ContentAudit(): ReactNode {
   return (
-    <Layout title="Content Audit Dashboard">
-      <div
-        style={{
-          padding: "2rem",
-        }}
-      >
-        <h1>Content Audit Dashboard</h1>
-        <div>
-          <h2>Documentation Files</h2>
-          <ul>
-            {content.docs.map((doc, idx) => (
-              <li key={idx}>
-                <strong>{doc.filePath}</strong>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <h2>Pages</h2>
-          <ul>
-            {content.pages.map((page, idx) => (
-              <li key={idx}>
-                <strong>{page.filePath}</strong>
-              </li>
-            ))}
-          </ul>
-        </div>
+    <Layout title="Content Audit" description="Content Audit Dashboard">
+      <div className="container margin-vert--lg">
+        <h1>Hello from Content Audit Plugin!</h1>
+        <p>The plugin is working!</p>
       </div>
     </Layout>
   )

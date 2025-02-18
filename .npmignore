@@ -1,0 +1,28 @@
+# Source
+src/
+tsconfig.json
+tsconfig.*.json
+sample/
+
+# Dependencies
+node_modules/
+yarn.lock
+package-lock.json
+
+# Development/Documentation
+documentation/
+sample/
+.git/
+.github/
+.vscode/
+.idea/
+.DS_Store
+
+# Tests
+__tests__/
+coverage/
+jest.config.js
+
+# Build process
+.tsbuildinfo
+*.log

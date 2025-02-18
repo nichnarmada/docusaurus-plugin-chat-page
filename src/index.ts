@@ -1,105 +1,96 @@
-import { LoadContext, Plugin } from "@docusaurus/types"
+import { LoadContext, Plugin, ThemeConfig } from "@docusaurus/types"
 import { normalizeUrl } from "@docusaurus/utils"
+import * as path from "path"
 
 export interface PluginOptions {
+  label?: string
   path?: string
-  includeDocumentation?: boolean
-  includePages?: boolean
+  showNavbar?: boolean
 }
 
-interface ContentAuditContent {
-  docs: {
-    filePath: string
-    content: string
-    metadata: any
-  }[]
-  pages: {
-    filePath: string
-    content: string
-    metadata: any
-  }[]
+interface NavbarItem {
+  to: string
+  label: string
+  position: "left" | "right"
+}
+
+interface DocusaurusThemeConfig extends ThemeConfig {
+  navbar?: {
+    items?: NavbarItem[]
+  }
+}
+
+// Helper function to normalize path with leading slash
+function normalizePath(inputPath: string): string {
+  // Remove trailing slashes and ensure leading slash
+  return "/" + inputPath.replace(/^\/+|\/+$/g, "")
 }
 
 export default function pluginContentAudit(
   context: LoadContext,
   options: PluginOptions = {}
-): Plugin<ContentAuditContent> {
+): Plugin<void> & {
+  getThemeConfig: (config: {
+    themeConfig: DocusaurusThemeConfig
+  }) => DocusaurusThemeConfig
+} {
   const {
     siteConfig: { baseUrl },
-    siteDir,
   } = context
+
+  // Default options
+  const {
+    label = "Content Audit",
+    path: inputPath = "content-audit",
+    showNavbar = true,
+  } = options
+
+  // Normalize the path
+  const routePath = normalizePath(inputPath)
 
   return {
     name: "docusaurus-plugin-content-audit",
 
-    // Get theme path for any UI components we'll add later
     getThemePath() {
-      return "../lib/theme"
+      return path.resolve(__dirname, "./theme")
     },
 
     getTypeScriptThemePath() {
-      return "../src/theme"
+      return path.resolve(__dirname, "./theme")
     },
 
-    // Load content from docs and pages
-    async loadContent(): Promise<ContentAuditContent> {
-      console.log("Loading content for audit...")
+    async contentLoaded({ actions }) {
+      const { addRoute } = actions
 
-      const content: ContentAuditContent = {
-        docs: [],
-        pages: [],
-      }
-
-      // TODO: Implement content loading logic
-      // 1. Scan docs directory for markdown files
-      // 2. Parse metadata and content
-      // 3. Check for broken links
-      // 4. Validate metadata completeness
-
-      return content
-    },
-
-    // Process loaded content and run audits
-    async contentLoaded({ content, actions }) {
-      console.log("Running content audits...")
-      const { addRoute, createData } = actions
-
-      // TODO: Implement audit logic and create routes
-      // Example route for audit dashboard
+      // Add route for the audit dashboard
       addRoute({
-        path: normalizeUrl([baseUrl, "__docusaurus/content-audit"]),
+        path: normalizeUrl([baseUrl, routePath]),
         component: "@theme/ContentAudit",
         exact: true,
-        props: {
-          content,
-        },
       })
     },
 
-    // Register any client-side components
-    getClientModules() {
-      return []
-    },
+    // Add navbar/footer items
+    getThemeConfig(props) {
+      if (!showNavbar) {
+        return props.themeConfig
+      }
 
-    // Extend webpack config if needed
-    configureWebpack(config, isServer, utils) {
-      return {}
+      // Add navbar item
+      const navbarItems = props.themeConfig.navbar?.items || []
+      const newNavbarItem: NavbarItem = {
+        to: routePath,
+        label: label,
+        position: "left",
+      }
+
+      return {
+        ...props.themeConfig,
+        navbar: {
+          ...props.themeConfig.navbar,
+          items: [...navbarItems, newNavbarItem],
+        },
+      }
     },
   }
-}
-
-// Validate plugin options
-export function validateOptions({
-  validate,
-  options,
-}: {
-  validate: any
-  options: PluginOptions
-}): PluginOptions {
-  const validatedOptions = validate.objectOf({
-    path: validate.string().optional(),
-    includeDocumentation: validate.boolean().optional(),
-    includePages: validate.boolean().optional(),
-  })
-  return validatedOptions(options)
 }
