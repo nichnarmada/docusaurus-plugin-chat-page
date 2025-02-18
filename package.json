@@ -1,0 +1,30 @@
+{
+  "name": "docusaurus-plugin-content-audit",
+  "version": "0.1.0",
+  "description": "A Docusaurus plugin for auditing content quality and metadata",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc --build",
+    "watch": "tsc --build --watch"
+  },
+  "dependencies": {
+    "@docusaurus/core": "^3.7.0",
+    "@docusaurus/types": "^3.7.0",
+    "@docusaurus/utils": "^3.0.0",
+    "@docusaurus/theme-common": "^3.7.0",
+    "@docusaurus/theme-classic": "^3.7.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@docusaurus/tsconfig": "^3.7.0",
+    "@types/react": "^18.2.0",
+    "typescript": "~5.6.2"
+  },
+  "engines": {
+    "node": ">=18.0"
+  }
+}
