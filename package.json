@@ -15,10 +15,10 @@
     "src"
   ],
   "dependencies": {
+    "@docusaurus/utils": "^3.7.0",
     "openai": "^4.85.2"
   },
   "peerDependencies": {
-    "@docusaurus/utils": "^3.7.0",
     "@docusaurus/core": ">=2.0.0",
     "react": ">=16.8.0",
     "react-dom": ">=16.8.0"

@@ -8,12 +8,9 @@ export interface ContentIssue {
   message: string
   severity: "error" | "warning" | "info"
   details?: {
-    score?: number
     recommendation?: string
     relatedFiles?: string[]
     missingFields?: string[]
-    readingTime?: number
-    wordCount?: number
     aiSuggestions?: {
       clarity?: string
       improvements?: string[]
@@ -34,7 +31,6 @@ export interface FileNode {
     metadata: Record<string, any>
     rawContent: string
     issues: ContentIssue[]
-    overallScore?: number // Overall document score
   }
 }
 

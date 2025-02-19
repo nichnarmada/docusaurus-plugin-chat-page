@@ -6,7 +6,8 @@
 .treeNode {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
+  width: 100%;
 }
 
 .treeNodeContent {
@@ -15,9 +16,9 @@
   gap: 0.5rem;
   padding: 0.5rem;
   border-radius: 4px;
-  cursor: pointer;
   transition: background-color 0.2s ease;
   width: 100%;
+  cursor: pointer;
 }
 
 .treeNodeContent:hover {
@@ -28,7 +29,15 @@
   margin-left: 1.25rem;
   border-left: 1px solid var(--ifm-color-emphasis-300);
   padding-left: 1rem;
-  width: calc(100% - 1.25rem);
+}
+
+.fileRow {
+  cursor: pointer;
+}
+
+.treeNodeContent:hover .expandButton,
+.treeNodeContent:hover .issuesExpandButton {
+  opacity: 1;
 }
 
 .expandButton {
@@ -46,6 +55,8 @@
   flex-shrink: 0;
   line-height: 1;
   font-family: monospace;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
 }
 
 .expandButton:hover {
@@ -73,8 +84,7 @@
 .issuesBadge {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.25rem 0.75rem;
+  padding: 0.25rem 0.5rem;
   border-radius: 1rem;
   font-size: 0.75rem;
   font-weight: 500;
@@ -122,6 +132,7 @@
   font-size: 0.875rem;
   line-height: 1;
   font-family: monospace;
+  margin-left: -0.25rem;
 }
 
 .issuesExpandButton:hover {
@@ -129,14 +140,14 @@
 }
 
 .issuesPanel {
-  margin-left: 2.5rem;
+  margin-left: 1.25rem;
   margin-top: 0.5rem;
   margin-bottom: 0.5rem;
   padding: 0.75rem;
   background-color: var(--ifm-color-emphasis-0);
   border: 1px solid var(--ifm-color-emphasis-200);
   border-radius: 4px;
-  width: calc(100% - 2.5rem);
+  width: calc(100% - 2.25rem);
 }
 
 .issueDetail {

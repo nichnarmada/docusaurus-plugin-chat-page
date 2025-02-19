@@ -8,7 +8,7 @@ interface AIValidationContext {
   openai: OpenAIConfig
 }
 
-const DEFAULT_SYSTEM_PROMPT = `You are a technical documentation expert. Analyze the provided documentation content and provide feedback on:
+const DEFAULT_SYSTEM_PROMPT = `You are a technical documentation expert. Analyze the provided documentation content and provide actionable feedback on:
 1. Clarity and readability
 2. Technical accuracy
 3. Audience appropriateness
@@ -17,26 +17,14 @@ const DEFAULT_SYSTEM_PROMPT = `You are a technical documentation expert. Analyze
 
 Format your response as JSON with the following structure:
 {
-  "clarity": "brief assessment of clarity",
-  "technicalAccuracy": "assessment of technical accuracy",
-  "audienceMatch": "assessment of audience appropriateness",
-  "improvements": ["list", "of", "specific", "improvements"],
+  "clarity": "brief assessment of clarity with specific suggestions for improvement",
+  "technicalAccuracy": "assessment of technical accuracy with specific areas to verify or improve",
+  "audienceMatch": "assessment of audience appropriateness with suggestions to better target the audience",
+  "improvements": ["list", "of", "specific", "actionable", "improvements"],
   "keywords": ["key", "technical", "terms", "identified"]
 }
 
-Additionally, provide numerical scores (0-100) for each aspect:
-{
-  "clarity": "assessment...",
-  "clarityScore": 85,
-  "technicalAccuracy": "assessment...",
-  "technicalAccuracyScore": 90,
-  "audienceMatch": "assessment...",
-  "audienceMatchScore": 75,
-  "improvements": [...],
-  "keywords": [...]
-}
-
-Be concise but specific in your feedback.`
+Be concise but specific in your feedback, focusing on actionable suggestions that will help improve the documentation.`
 
 /**
  * Analyzes content using OpenAI
@@ -47,7 +35,7 @@ async function analyzeWithAI(
   const issues: ContentIssue[] = []
 
   try {
-    const model = "gpt-3.5-turbo"
+    const model = "o3-mini"
     const openai = new OpenAI({
       apiKey: context.openai.apiKey,
     })
@@ -64,8 +52,8 @@ Content:
 ${context.content}`,
         },
       ],
-      temperature: context.openai.temperature || 0.3,
-      max_tokens: context.openai.maxTokens || 500,
+      // temperature: context.openai.temperature || 0.3,
+      // max_tokens: context.openai.maxTokens || 500,
       response_format: { type: "json_object" },
     })
 
@@ -82,7 +70,6 @@ ${context.content}`,
         message: "Content clarity could be improved",
         severity: "warning",
         details: {
-          score: analysis.clarityScore || Math.floor(Math.random() * 30) + 40,
           aiSuggestions: {
             clarity: analysis.clarity,
             improvements: analysis.improvements,
@@ -101,9 +88,6 @@ ${context.content}`,
         message: "Technical accuracy concerns",
         severity: "error",
         details: {
-          score:
-            analysis.technicalAccuracyScore ||
-            Math.floor(Math.random() * 20) + 30,
           aiSuggestions: {
             technicalAccuracy: analysis.technicalAccuracy,
             improvements: analysis.improvements.filter(
@@ -126,8 +110,6 @@ ${context.content}`,
         message: "Content may not match target audience",
         severity: "warning",
         details: {
-          score:
-            analysis.audienceMatchScore || Math.floor(Math.random() * 30) + 40,
           aiSuggestions: {
             audienceMatch: analysis.audienceMatch,
             improvements: analysis.improvements.filter(
@@ -147,7 +129,6 @@ ${context.content}`,
         message: "Key technical terms identified",
         severity: "info",
         details: {
-          score: 100,
           aiSuggestions: {
             keywords: analysis.keywords,
           },

@@ -31,11 +31,6 @@ function IssueDetails({ issue }: { issue: ContentIssue }) {
       <div className={styles.issueContent}>
         <div className={styles.issueHeader}>
           <span className={styles.issueMessage}>{issue.message}</span>
-          {issue.details?.score !== undefined && (
-            <span className={styles.issueScore}>
-              Score: {issue.details.score}
-            </span>
-          )}
         </div>
 
         {/* AI Suggestions */}
@@ -91,18 +86,6 @@ function IssueDetails({ issue }: { issue: ContentIssue }) {
             {issue.details.recommendation}
           </div>
         )}
-        {issue.details?.wordCount && (
-          <div className={styles.issueStats}>
-            {issue.details.wordCount} words
-            {issue.details.readingTime &&
-              ` • ${issue.details.readingTime} min read`}
-          </div>
-        )}
-        {issue.details?.missingFields && (
-          <div className={styles.issueMissingFields}>
-            Missing: {issue.details.missingFields.join(", ")}
-          </div>
-        )}
       </div>
     </div>
   )
@@ -111,11 +94,9 @@ function IssueDetails({ issue }: { issue: ContentIssue }) {
 function IssuesBadge({
   issues,
   isLoading,
-  overallScore,
 }: {
   issues: ContentIssue[]
   isLoading?: boolean
-  overallScore?: number
 }) {
   if (isLoading) {
     return (
@@ -126,39 +107,22 @@ function IssuesBadge({
     )
   }
 
-  const score = overallScore || calculateOverallScore(issues)
-  const scoreClass =
-    score >= 90 ? styles.success : score >= 70 ? styles.warning : styles.error
+  const severity =
+    issues.length > 0
+      ? issues.some((i) => i.severity === "error")
+        ? "error"
+        : issues.some((i) => i.severity === "warning")
+        ? "warning"
+        : "info"
+      : "success"
 
   return (
-    <span className={`${styles.issuesBadge} ${scoreClass}`}>
-      Score: {score}/100
-      {issues.length > 0 && (
-        <span className={styles.issueCount}>
-          ({issues.length} {issues.length === 1 ? "issue" : "issues"})
-        </span>
-      )}
+    <span className={`${styles.issuesBadge} ${styles[severity]}`}>
+      {issues.length === 0
+        ? "No issues"
+        : `${issues.length} ${issues.length === 1 ? "issue" : "issues"}`}
     </span>
   )
-}
-
-function calculateOverallScore(issues: ContentIssue[]): number {
-  if (!issues.length) return 100
-
-  // Calculate weighted average of all scores
-  const scores = issues.map((issue) => ({
-    score: issue.details?.score || 0,
-    weight:
-      issue.severity === "error" ? 3 : issue.severity === "warning" ? 2 : 1,
-  }))
-
-  const totalWeight = scores.reduce((sum, item) => sum + item.weight, 0)
-  const weightedSum = scores.reduce(
-    (sum, item) => sum + item.score * item.weight,
-    0
-  )
-
-  return Math.round(weightedSum / totalWeight)
 }
 
 function TreeNode({ node, level = 0 }: TreeNodeProps) {
@@ -182,30 +146,64 @@ function TreeNode({ node, level = 0 }: TreeNodeProps) {
     return []
   }
 
-  const issues = getNodeIssues(node)
-  const totalIssues =
-    node.type === "directory"
-      ? children.reduce((sum, child) => sum + getNodeIssues(child).length, 0)
-      : issues.length
-
-  const handleToggle = () => {
-    if (hasChildren) {
-      setIsExpanded(!isExpanded)
+  // Calculate total issues for a directory and its descendants using the same logic as content.ts
+  const calculateTotalIssues = (node: FileNode): number => {
+    if (node.type === "file") {
+      return getNodeIssues(node).length
     }
+
+    if (node.type === "directory" && node.children) {
+      let totalIssues = 0
+
+      // First count issues from immediate files
+      node.children.forEach((child) => {
+        if (child.type === "file") {
+          totalIssues += getNodeIssues(child).length
+        }
+      })
+
+      // Then aggregate issues from child directories
+      node.children.forEach((child) => {
+        if (child.type === "directory") {
+          totalIssues += calculateTotalIssues(child)
+        }
+      })
+
+      return totalIssues
+    }
+
+    return 0
   }
 
-  const handleIssuesToggle = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (node.type === "file") {
+  const issues = getNodeIssues(node)
+  const totalIssues =
+    node.type === "directory" ? calculateTotalIssues(node) : issues.length
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (node.type === "directory" && hasChildren) {
+      setIsExpanded(!isExpanded)
+    } else if (node.type === "file") {
       setShowIssues(!showIssues)
     }
   }
 
   return (
     <div className={styles.treeNode}>
-      <div className={styles.treeNodeContent} onClick={handleToggle}>
+      <div
+        className={`${styles.treeNodeContent} ${
+          node.type === "file" ? styles.fileRow : ""
+        }`}
+        onClick={handleClick}
+      >
         {hasChildren ? (
-          <button className={styles.expandButton} type="button">
+          <button
+            className={styles.expandButton}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              setIsExpanded(!isExpanded)
+            }}
+          >
             {isExpanded ? "−" : "+"}
           </button>
         ) : (
@@ -215,17 +213,16 @@ function TreeNode({ node, level = 0 }: TreeNodeProps) {
         <span className={styles.fileName}>{node.name || "Unnamed"}</span>
 
         {node.type === "file" && (
-          <div className={styles.issuesSection} onClick={handleIssuesToggle}>
-            <IssuesBadge
-              issues={issues}
-              isLoading={node.isLoading}
-              overallScore={node.content?.overallScore}
-            />
+          <div className={styles.issuesSection}>
+            <IssuesBadge issues={issues} isLoading={node.isLoading} />
             {!node.isLoading && issues.length > 0 && (
               <button
                 className={styles.issuesExpandButton}
                 type="button"
-                onClick={handleIssuesToggle}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowIssues(!showIssues)
+                }}
               >
                 {showIssues ? "−" : "+"}
               </button>
