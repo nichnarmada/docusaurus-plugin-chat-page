@@ -1,30 +1,61 @@
 import { LoadContext } from "@docusaurus/types"
 import * as fs from "fs/promises"
 import * as path from "path"
-import type { ContentAuditContent, ContentAuditResult } from "./types"
+import type {
+  FileNode,
+  ContentAuditContent,
+  ContentAuditResult,
+  ContentTree,
+} from "./types"
 
 /**
- * Recursively find all markdown files in a directory
+ * Convert a flat list of file paths into a tree structure
  */
-async function findMarkdownFiles(dir: string): Promise<string[]> {
-  const files: string[] = []
-  const entries = await fs.readdir(dir, { withFileTypes: true })
+function pathsToTree(files: string[], baseDir: string): FileNode[] {
+  const root: FileNode[] = []
+  const nodes = new Map<string, FileNode>()
 
-  for (const entry of entries) {
-    const fullPath = path.join(dir, entry.name)
+  // Sort files to ensure parent directories are processed first
+  const sortedFiles = [...files].sort()
 
-    if (entry.isDirectory()) {
-      // Skip node_modules and hidden directories
-      if (entry.name === "node_modules" || entry.name.startsWith(".")) {
-        continue
+  for (const file of sortedFiles) {
+    const relativePath = path.relative(baseDir, file)
+    const parts = relativePath.split(path.sep)
+    let currentPath = ""
+
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i]
+      const isFile = i === parts.length - 1
+      const fullPath = path.join(currentPath, part)
+      const displayPath = isFile ? relativePath : fullPath
+
+      if (!nodes.has(fullPath)) {
+        // Get the actual file/directory name from the path
+        const name = isFile
+          ? path.basename(file, path.extname(file)) // Remove extension for files
+          : part
+
+        const node: FileNode = {
+          type: isFile ? "file" : "directory",
+          name: name,
+          path: displayPath,
+          children: isFile ? undefined : [],
+        }
+        nodes.set(fullPath, node)
+
+        if (currentPath === "") {
+          root.push(node)
+        } else {
+          const parent = nodes.get(currentPath)
+          parent?.children?.push(node)
+        }
       }
-      files.push(...(await findMarkdownFiles(fullPath)))
-    } else if (entry.isFile() && /\.(md|mdx)$/.test(entry.name)) {
-      files.push(fullPath)
+
+      currentPath = fullPath
     }
   }
 
-  return files
+  return root
 }
 
 /**
@@ -54,12 +85,9 @@ function parseFrontmatter(content: string): [Record<string, any>, string] {
 }
 
 /**
- * Load and process content from a directory
+ * Process a directory and build a tree structure
  */
-async function processDirectory(
-  dir: string,
-  baseDir: string
-): Promise<ContentAuditResult[]> {
+async function processDirectory(dir: string): Promise<FileNode[]> {
   if (
     !(await fs
       .access(dir)
@@ -69,22 +97,121 @@ async function processDirectory(
     return []
   }
 
-  const files = await findMarkdownFiles(dir)
-  const results: ContentAuditResult[] = []
+  const allFiles = await (async function walk(
+    currentDir: string
+  ): Promise<string[]> {
+    const files: string[] = []
+    const entries = await fs.readdir(currentDir, { withFileTypes: true })
 
-  for (const file of files) {
+    for (const entry of entries) {
+      const fullPath = path.join(currentDir, entry.name)
+
+      if (entry.isDirectory()) {
+        if (entry.name !== "node_modules" && !entry.name.startsWith(".")) {
+          files.push(...(await walk(fullPath)))
+        }
+      } else if (entry.isFile() && /\.(md|mdx)$/.test(entry.name)) {
+        files.push(fullPath)
+      }
+    }
+
+    return files
+  })(dir)
+
+  // Convert flat list to tree
+  const tree = pathsToTree(allFiles, dir)
+
+  // Process file contents
+  for (const file of allFiles) {
     const content = await fs.readFile(file, "utf-8")
-    const [metadata, processedContent] = parseFrontmatter(content)
-    const relativePath = path.relative(baseDir, file)
+    const [metadata, rawContent] = parseFrontmatter(content)
+    const relativePath = path.relative(dir, file)
 
-    results.push({
-      filePath: relativePath,
-      content: processedContent,
-      metadata,
-      issues: [], // Will be populated by analysis tools later
-    })
+    // Find the corresponding node in the tree
+    let currentNodes = tree
+    const parts = relativePath.split(path.sep)
+
+    for (const part of parts) {
+      const node = currentNodes.find((n) => n.name === part)
+      if (node?.type === "file") {
+        node.content = {
+          metadata,
+          rawContent,
+          issues: [], // Will be populated by analysis tools later
+        }
+        break
+      }
+      currentNodes = node?.children || []
+    }
   }
 
+  return tree
+}
+
+/**
+ * Calculate total issues in a tree
+ */
+function calculateTreeIssues(nodes: FileNode[]): {
+  totalFiles: number
+  totalIssues: number
+  issuesByType: Record<string, number>
+} {
+  let totalFiles = 0
+  let totalIssues = 0
+  const issuesByType: Record<string, number> = {}
+
+  function traverse(node: FileNode) {
+    if (node.type === "file") {
+      totalFiles++
+      if (node.content) {
+        totalIssues += node.content.issues.length
+        node.content.issues.forEach((issue) => {
+          issuesByType[issue.type] = (issuesByType[issue.type] || 0) + 1
+        })
+      }
+    } else if (node.children) {
+      node.children.forEach(traverse)
+    }
+  }
+
+  nodes.forEach(traverse)
+
+  return {
+    totalFiles,
+    totalIssues,
+    issuesByType,
+  }
+}
+
+/**
+ * Convert a tree structure to a flat list of files
+ */
+function treeToFlatList(nodes: FileNode[]): ContentAuditResult[] {
+  const results: ContentAuditResult[] = []
+
+  function traverse(node: FileNode) {
+    if (node.type === "file") {
+      // Ensure we have at least an empty content object if none exists
+      const content = node.content || {
+        metadata: {},
+        rawContent: "",
+        issues: [],
+      }
+
+      results.push({
+        filePath: node.path,
+        content: content.rawContent || "",
+        metadata: content.metadata || {},
+        issues: content.issues || [],
+      })
+    }
+
+    if (node.children && Array.isArray(node.children)) {
+      node.children.forEach(traverse)
+    }
+  }
+
+  nodes.forEach(traverse)
   return results
 }
 
@@ -99,33 +226,37 @@ export async function loadContent(
   const docsDir = path.join(siteDir, "docs")
   const pagesDir = path.join(siteDir, "src/pages")
 
-  const [docs, pages] = await Promise.all([
-    processDirectory(docsDir, docsDir),
-    processDirectory(pagesDir, pagesDir),
+  // Get the tree structures
+  const [docsTree, pagesTree] = await Promise.all([
+    processDirectory(docsDir),
+    processDirectory(pagesDir),
   ])
 
-  // Calculate summary statistics
-  const totalFiles = docs.length + pages.length
-  const totalIssues = [...docs, ...pages].reduce(
-    (sum, file) => sum + file.issues.length,
-    0
-  )
+  // Calculate summary statistics from the tree
+  const docsStats = calculateTreeIssues(docsTree)
+  const pagesStats = calculateTreeIssues(pagesTree)
 
-  // Count issues by type
-  const issuesByType = [...docs, ...pages].reduce((acc, file) => {
-    file.issues.forEach((issue) => {
-      acc[issue.type] = (acc[issue.type] || 0) + 1
-    })
-    return acc
-  }, {} as Record<string, number>)
+  const summary = {
+    totalFiles: docsStats.totalFiles + pagesStats.totalFiles,
+    totalIssues: docsStats.totalIssues + pagesStats.totalIssues,
+    issuesByType: Object.entries(docsStats.issuesByType).reduce(
+      (acc, [type, count]) => {
+        acc[type] = (acc[type] || 0) + count
+        return acc
+      },
+      { ...pagesStats.issuesByType }
+    ),
+  }
+
+  // Create the tree structure that matches ContentTree interface
+  const tree: ContentTree = {
+    docs: docsTree,
+    pages: pagesTree,
+    summary: summary,
+  }
 
   return {
-    docs,
-    pages,
-    summary: {
-      totalFiles,
-      totalIssues,
-      issuesByType,
-    },
+    tree,
+    summary,
   }
 }
