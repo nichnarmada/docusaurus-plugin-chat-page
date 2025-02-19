@@ -1,10 +1,26 @@
 export interface ContentIssue {
-  type: "broken-link" | "missing-metadata" | "formatting"
+  type:
+    | "missing-metadata"
+    | "content-quality"
+    | "semantic-similarity"
+    | "readability"
+    | "ai-suggestion"
   message: string
   severity: "error" | "warning" | "info"
-  location?: {
-    line: number
-    column: number
+  details?: {
+    score?: number
+    recommendation?: string
+    relatedFiles?: string[]
+    missingFields?: string[]
+    readingTime?: number
+    wordCount?: number
+    aiSuggestions?: {
+      clarity?: string
+      improvements?: string[]
+      keywords?: string[]
+      technicalAccuracy?: string
+      audienceMatch?: string
+    }
   }
 }
 
@@ -13,10 +29,12 @@ export interface FileNode {
   name: string
   path: string
   children?: FileNode[]
+  isLoading?: boolean
   content?: {
     metadata: Record<string, any>
     rawContent: string
     issues: ContentIssue[]
+    overallScore?: number // Overall document score
   }
 }
 
@@ -45,4 +63,18 @@ export interface ContentAuditContent {
     totalIssues: number
     issuesByType: Record<string, number>
   }
+}
+
+export interface OpenAIConfig {
+  apiKey: string
+  model?: string // defaults to "gpt-3.5-turbo"
+  maxTokens?: number // defaults to 500
+  temperature?: number // defaults to 0.3
+}
+
+export interface PluginOptions {
+  label?: string
+  path?: string
+  showNavbar?: boolean
+  openai?: OpenAIConfig
 }

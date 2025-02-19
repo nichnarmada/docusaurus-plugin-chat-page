@@ -6,7 +6,11 @@ import type {
   ContentAuditContent,
   ContentAuditResult,
   ContentTree,
+  OpenAIConfig,
+  ContentIssue,
 } from "./types"
+import { validateWithAI } from "./validators/ai"
+import { glob } from "glob"
 
 /**
  * Convert a flat list of file paths into a tree structure
@@ -19,26 +23,26 @@ function pathsToTree(files: string[], baseDir: string): FileNode[] {
   const sortedFiles = [...files].sort()
 
   for (const file of sortedFiles) {
-    const relativePath = path.relative(baseDir, file)
-    const parts = relativePath.split(path.sep)
+    // File is already relative to baseDir
+    const parts = file.split(path.sep)
     let currentPath = ""
 
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i]
       const isFile = i === parts.length - 1
       const fullPath = path.join(currentPath, part)
-      const displayPath = isFile ? relativePath : fullPath
+      const displayPath = file // Use the original relative path for files
 
       if (!nodes.has(fullPath)) {
         // Get the actual file/directory name from the path
         const name = isFile
-          ? path.basename(file, path.extname(file)) // Remove extension for files
+          ? path.basename(part, path.extname(part)) // Remove extension for files
           : part
 
         const node: FileNode = {
           type: isFile ? "file" : "directory",
           name: name,
-          path: displayPath,
+          path: isFile ? displayPath : fullPath,
           children: isFile ? undefined : [],
         }
         nodes.set(fullPath, node)
@@ -87,65 +91,99 @@ function parseFrontmatter(content: string): [Record<string, any>, string] {
 /**
  * Process a directory and build a tree structure
  */
-async function processDirectory(dir: string): Promise<FileNode[]> {
-  if (
-    !(await fs
-      .access(dir)
-      .then(() => true)
-      .catch(() => false))
-  ) {
-    return []
-  }
+export async function processDirectory(
+  dir: string,
+  openai?: OpenAIConfig
+): Promise<FileNode[]> {
+  try {
+    const files = glob.sync("**/*.md", {
+      cwd: dir,
+      absolute: false,
+    })
 
-  const allFiles = await (async function walk(
-    currentDir: string
-  ): Promise<string[]> {
-    const files: string[] = []
-    const entries = await fs.readdir(currentDir, { withFileTypes: true })
+    const tree = pathsToTree(files, dir)
 
-    for (const entry of entries) {
-      const fullPath = path.join(currentDir, entry.name)
+    // Process each file node
+    const processNode = async (node: FileNode): Promise<void> => {
+      if (node.type === "file") {
+        try {
+          node.isLoading = true
+          const content = await fs.readFile(path.join(dir, node.path), "utf-8")
+          const [metadata, rawContent] = parseFrontmatter(content)
 
-      if (entry.isDirectory()) {
-        if (entry.name !== "node_modules" && !entry.name.startsWith(".")) {
-          files.push(...(await walk(fullPath)))
+          if (openai?.apiKey) {
+            try {
+              const issues = await validateWithAI(
+                rawContent,
+                node.path,
+                metadata,
+                openai
+              )
+              const overallScore = calculateOverallScore(issues)
+
+              node.content = {
+                metadata,
+                rawContent,
+                issues,
+                overallScore,
+              }
+            } catch (validationError) {
+              // Still set content even if validation fails
+              node.content = {
+                metadata,
+                rawContent,
+                issues: [],
+                overallScore: 0,
+              }
+            }
+          } else {
+            node.content = {
+              metadata,
+              rawContent,
+              issues: [],
+              overallScore: 0,
+            }
+          }
+        } catch (error) {
+          console.error(`Error processing file ${node.path}:`, error)
+        } finally {
+          node.isLoading = false
         }
-      } else if (entry.isFile() && /\.(md|mdx)$/.test(entry.name)) {
-        files.push(fullPath)
+      }
+
+      // Process children recursively
+      if (node.children) {
+        await Promise.all(node.children.map(processNode))
       }
     }
 
-    return files
-  })(dir)
+    // Process all root nodes
+    await Promise.all(tree.map(processNode))
 
-  // Convert flat list to tree
-  const tree = pathsToTree(allFiles, dir)
-
-  // Process file contents
-  for (const file of allFiles) {
-    const content = await fs.readFile(file, "utf-8")
-    const [metadata, rawContent] = parseFrontmatter(content)
-    const relativePath = path.relative(dir, file)
-
-    // Find the corresponding node in the tree
-    let currentNodes = tree
-    const parts = relativePath.split(path.sep)
-
-    for (const part of parts) {
-      const node = currentNodes.find((n) => n.name === part)
-      if (node?.type === "file") {
-        node.content = {
-          metadata,
-          rawContent,
-          issues: [], // Will be populated by analysis tools later
-        }
-        break
-      }
-      currentNodes = node?.children || []
-    }
+    return tree
+  } catch (error) {
+    console.error("Error in processDirectory:", error)
+    throw error
   }
+}
 
-  return tree
+function calculateOverallScore(issues: ContentIssue[]): number {
+  if (!issues.length) return 100
+
+  // Calculate weighted average of all scores
+  const scores = issues.map((issue) => ({
+    score: issue.details?.score || 0,
+    weight:
+      issue.severity === "error" ? 3 : issue.severity === "warning" ? 2 : 1,
+  }))
+
+  const totalWeight = scores.reduce((sum, item) => sum + item.weight, 0)
+  const weightedSum = scores.reduce(
+    (sum, item) => sum + item.score * item.weight,
+    0
+  )
+
+  return Math.round(weightedSum / totalWeight)
 }
 
 /**
@@ -219,17 +257,23 @@ function treeToFlatList(nodes: FileNode[]): ContentAuditResult[] {
  * Load all content and generate audit data
  */
 export async function loadContent(
-  context: LoadContext
+  context: LoadContext & { options?: { openai?: OpenAIConfig } }
 ): Promise<ContentAuditContent> {
-  const { siteDir } = context
+  const { siteDir, options } = context
+
+  if (!options?.openai?.apiKey) {
+    throw new Error(
+      "OpenAI API key is required. Please add it to your docusaurus.config.js"
+    )
+  }
 
   const docsDir = path.join(siteDir, "docs")
   const pagesDir = path.join(siteDir, "src/pages")
 
   // Get the tree structures
   const [docsTree, pagesTree] = await Promise.all([
-    processDirectory(docsDir),
-    processDirectory(pagesDir),
+    processDirectory(docsDir, options.openai),
+    processDirectory(pagesDir, options.openai),
   ])
 
   // Calculate summary statistics from the tree
@@ -248,15 +292,12 @@ export async function loadContent(
     ),
   }
 
-  // Create the tree structure that matches ContentTree interface
-  const tree: ContentTree = {
-    docs: docsTree,
-    pages: pagesTree,
-    summary: summary,
-  }
-
   return {
-    tree,
+    tree: {
+      docs: docsTree,
+      pages: pagesTree,
+      summary,
+    },
     summary,
   }
 }

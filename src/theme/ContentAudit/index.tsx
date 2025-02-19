@@ -1,7 +1,8 @@
-import React from "react"
+import React, { useEffect } from "react"
 import Layout from "@theme/Layout"
 import type { ReactNode } from "react"
 import { usePluginData } from "@docusaurus/useGlobalData"
+import useIsBrowser from "@docusaurus/useIsBrowser"
 import type { ContentTree, FileNode } from "../../types"
 import { TreeView } from "./TreeView"
 import "./styles.module.css"
@@ -33,6 +34,9 @@ function SummaryCard({
 }
 
 export default function ContentAudit(): ReactNode {
+  const isBrowser = useIsBrowser()
+  const [forceUpdate, setForceUpdate] = React.useState(0)
+
   const pluginData = usePluginData("docusaurus-plugin-content-audit") as {
     tree: ContentTree
     summary: {
@@ -41,6 +45,17 @@ export default function ContentAudit(): ReactNode {
       issuesByType: Record<string, number>
     }
   }
+
+  // Subscribe to content updates in development
+  useEffect(() => {
+    if (isBrowser && process.env.NODE_ENV === "development") {
+      // @ts-ignore - registerReloadCallback is added by our plugin
+      const unsubscribe = (window as any).docusaurus.registerReloadCallback?.(
+        () => setForceUpdate((n) => n + 1)
+      )
+      return () => unsubscribe?.()
+    }
+  }, [isBrowser])
 
   // Defensive check for data
   if (!pluginData || typeof pluginData !== "object") {

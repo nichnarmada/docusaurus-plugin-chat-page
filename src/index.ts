@@ -2,12 +2,13 @@ import { LoadContext, Plugin } from "@docusaurus/types"
 import { normalizeUrl } from "@docusaurus/utils"
 import * as path from "path"
 import { loadContent } from "./content"
-import type { ContentAuditContent } from "./types"
+import type { ContentAuditContent, OpenAIConfig } from "./types"
 
 export interface PluginOptions {
   label?: string
   path?: string
   showNavbar?: boolean
+  openai?: OpenAIConfig
 }
 
 interface NavbarItem {
@@ -22,10 +23,14 @@ interface DocusaurusThemeConfig {
   }
 }
 
-// Helper function to normalize path with leading slash
+interface LoadContextWithOptions extends LoadContext {
+  options?: {
+    openai?: OpenAIConfig
+  }
+}
+
 function normalizePath(inputPath: string): string {
-  // Remove trailing slashes and ensure leading slash
-  return "/" + inputPath.replace(/^\/+|\/+$/g, "")
+  return inputPath.startsWith("/") ? inputPath : `/${inputPath}`
 }
 
 export default function pluginContentAudit(
@@ -45,10 +50,21 @@ export default function pluginContentAudit(
     label = "Content Audit",
     path: inputPath = "content-audit",
     showNavbar = true,
+    openai,
   } = options
 
   // Normalize the path
   const routePath = normalizePath(inputPath)
+
+  let content: ContentAuditContent | null = null
+
+  // Create a context with options
+  const contextWithOptions: LoadContextWithOptions = {
+    ...context,
+    options: {
+      openai,
+    },
+  }
 
   return {
     name: "docusaurus-plugin-content-audit",
@@ -61,8 +77,13 @@ export default function pluginContentAudit(
       return path.resolve(__dirname, "./theme")
     },
 
+    getClientModules() {
+      return [path.resolve(__dirname, "./client/index")]
+    },
+
     async loadContent() {
-      return loadContent(context)
+      content = await loadContent(contextWithOptions)
+      return content
     },
 
     async contentLoaded({ actions, content }) {
@@ -77,6 +98,14 @@ export default function pluginContentAudit(
         component: "@theme/ContentAudit",
         exact: true,
       })
+    },
+
+    // Register paths to watch for changes
+    getPathsToWatch() {
+      return [
+        path.join(context.siteDir, "docs/**/*.{md,mdx}"),
+        path.join(context.siteDir, "src/pages/**/*.{md,mdx}"),
+      ]
     },
 
     // Add navbar/footer items
