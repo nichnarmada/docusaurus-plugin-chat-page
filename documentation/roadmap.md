@@ -4,51 +4,47 @@
 
 #### 1.1 Define Data Sources
 
-- **Documentation Sources:**
+- [x] **Documentation Sources:**
 
-  Identify the documentation pages (HTML, Markdown) and any GitHub codebase sections you want to include.
-
-- **Loaders:**
-
-  Use tools like LangChain’s **RecursiveURLLoader** and **SitemapLoader** to scrape the content during build time.
+  Parse the markdown files locally, get their content and metadata
 
 #### 1.2 Content Processing
 
-- **Text Splitting:**
+- [x] **Text Splitting:**
 
-  Use LangChain’s **RecursiveCharacterTextSplitter** (or your own implementation) to divide the raw HTML/Markdown content into smaller, manageable chunks (e.g., 500–1000 tokens each).
+  Use LangChain's **RecursiveCharacterTextSplitter** (or your own implementation) to divide the raw HTML/Markdown content into smaller, manageable chunks (e.g., 500–1000 tokens each).
 
-  - **Store Metadata:** For each chunk, keep track of additional metadata (such as the source URL, title, and position in the document) to help provide context in the chat responses.
+  - [x] **Store Metadata:** For each chunk, keep track of additional metadata (such as the source URL, title, and position in the document) to help provide context in the chat responses.
 
 #### 1.3 Compute Embeddings
 
-- **Embedding Calculation:**
+- [x] **Embedding Calculation:**
 
   For each text chunk, call the OpenAI Embedding API (or another provider) to compute a vector representation.
 
-  - **Security Note:** Since this is done at build time, the API key used for generating embeddings is not exposed at runtime.
+  - [x] **Security Note:** Since this is done at build time, the API key used for generating embeddings is not exposed at runtime.
 
-- **Data Structure:**
+- [x] **Data Structure:**
 
   Organize the data as an array of objects, each containing:
 
-  - The chunk’s text
+  - The chunk's text
   - Its metadata (source, title, etc.)
   - The computed embedding vector (typically an array of numbers)
 
 #### 1.4 Persisting the Data
 
-- **Serialize as JSON:**
+- [x] **Serialize as JSON:**
 
   Once all chunks have been processed and their embeddings computed, serialize the entire vector index as a JSON object.
 
-- **Integrate with Docusaurus Build:**
+- [x] **Integrate with Docusaurus Build:**
 
-  Within your plugin’s `loadContent()` lifecycle hook, run the ingestion pipeline and return the processed data.
+  Within your plugin's `loadContent()` lifecycle hook, run the ingestion pipeline and return the processed data.
 
-- **Using createData:**
+- [x] **Using createData:**
 
-  In the `contentLoaded()` lifecycle hook, use Docusaurus’s `createData` API to write the JSON object to a file (e.g., `embeddings.json`).
+  In the `contentLoaded()` lifecycle hook, use Docusaurus's `createData` API to write the JSON object to a file (e.g., `embeddings.json`).
 
   - This JSON file will be bundled as a static asset with your site, making it accessible on the client without the need for a live database.
 
@@ -110,11 +106,11 @@ module.exports = function (context, options) {
 
 #### 2.1 Create the Plugin
 
-- **Folder Structure:**
+- [x] **Folder Structure:**
 
-  Set up a folder (e.g., `plugins/docusaurus-plugin-chat-page`) containing your plugin’s source code.
+  Set up a folder (e.g., `plugins/docusaurus-plugin-chat-page`) containing your plugin's source code.
 
-- **Lifecycle Hooks:**
+- [x] **Lifecycle Hooks:**
 
   Implement the necessary lifecycle methods:
 
@@ -123,7 +119,7 @@ module.exports = function (context, options) {
 
 #### 2.2 Configuration Options
 
-- **User Configuration:**
+- [x] **User Configuration:**
 
   In your plugin options (set via `docusaurus.config.js`), allow maintainers to supply:
 
@@ -154,7 +150,7 @@ module.exports = {
 
 #### 3.1 Building the Chat UI
 
-- **React Component:**
+- [x] **React Component:**
 
   Develop a React component (e.g., `ChatPage.jsx`) that:
 
@@ -162,47 +158,47 @@ module.exports = {
   - Maintains conversation state (using React state or Context API).
   - Displays results as they stream in.
 
-- **UI Considerations:**
+- [x] **UI Considerations:**
 
-  Ensure responsiveness and an intuitive chat interface that matches your documentation’s theme.
+  Ensure responsiveness and an intuitive chat interface that matches your documentation's theme.
 
 #### 3.2 Loading the Static Embeddings
 
-- **Dynamic Import:**
+- [x] **Dynamic Import:**
 
   In the ChatPage component, import or fetch the JSON file (the embeddings file) that was generated at build time.
 
-  - This might be done via Webpack’s module resolution (the `modules.embeddings` prop) or by fetching the static file from the site’s assets.
+  - This might be done via Webpack's module resolution (the `modules.embeddings` prop) or by fetching the static file from the site's assets.
 
 #### 3.3 Handling User Queries
 
-- **Query Processing:**
+- [x] **Query Processing:**
 
   1. **Conversation Context:**
 
      Gather the current chat history along with the new user query.
 
-  2. **Rephrase the Query:**
+  2. [ ] **Rephrase the Query:**
 
      Optionally, use an LLM (via a prompt) to convert the conversation and new query into a standalone question.
 
-- **Embedding the Query:**
+- [x] **Embedding the Query:**
 
   - **Compute Query Embedding:**
 
-    Before performing similarity search, the user’s standalone query must be converted into its vector representation.
+    Before performing similarity search, the user's standalone query must be converted into its vector representation.
 
-    - **Client‑Side Approach:**
+    - [ ] **Client‑Side Approach:**
 
-      If feasible, use a lightweight client‑side embedding model (e.g., TensorFlow.js) to compute the query’s embedding without a backend.
+      If feasible, use a lightweight client‑side embedding model (e.g., TensorFlow.js) to compute the query's embedding without a backend.
 
-      - _Note:_ Many embeddings models are large; if a lightweight model isn’t available, consider a minimal proxy function or serverless endpoint. However, if your goal is to keep it backend‑free, a small client‑side model or pre‑computed embeddings for common queries might be used.
+      - _Note:_ Many embeddings models are large; if a lightweight model isn't available, consider a minimal proxy function or serverless endpoint. However, if your goal is to keep it backend‑free, a small client‑side model or pre‑computed embeddings for common queries might be used.
 
-- **Similarity Search:**
+- [x] **Similarity Search:**
 
   - **Client‑Side Vector Search:**
 
-    Use a library like [client‑vector‑search](https://github.com/yusufhilmi/client-vector-search) or [entity‑db](https://github.com/babycommando/entity-db) to perform a cosine similarity search over the pre‑computed embeddings.
+    Use cosine similarity to perform the search over the pre‑computed embeddings.
 
   - **Retrieve Top K:**
 
@@ -210,19 +206,19 @@ module.exports = {
 
 #### 3.4 Generating the Final Answer
 
-- **Prompt Construction:**
+- [x] **Prompt Construction:**
 
   Concatenate the retrieved document chunks (as context) with the standalone query (and optionally the conversation history) to create a prompt.
 
-- **LLM Call:**
+- [x] **LLM Call:**
 
   Using the OpenAI API key (supplied via configuration), call the OpenAI Chat API to generate an answer.
 
-  - **Streaming:**
+  - [x] **Streaming:**
 
     If desired, implement response streaming to display tokens as they arrive.
 
-- **Display the Answer:**
+- [x] **Display the Answer:**
 
   Update the chat UI to show the generated answer along with the conversation history.
 
@@ -232,43 +228,43 @@ module.exports = {
 
 #### 4.1 Testing
 
-- **Unit Testing:**
+- [ ] **Unit Testing:**
 
   Write tests for:
 
   - The ingestion pipeline (ensuring proper document splitting and embedding computation).
-  - The JSON file generation using Docusaurus’s createData.
+  - The JSON file generation using Docusaurus's createData.
   - The client-side vector search logic.
 
-- **Integration Testing:**
+- [ ] **Integration Testing:**
 
-  Validate that the plugin’s lifecycle hooks properly intercept the Docusaurus build, generate the JSON file, and register the chat route.
+  Validate that the plugin's lifecycle hooks properly intercept the Docusaurus build, generate the JSON file, and register the chat route.
 
-- **User Acceptance Testing:**
+- [ ] **User Acceptance Testing:**
 
   Conduct beta tests with actual documentation maintainers and end‑users. Collect feedback on response quality, speed, and UI/UX.
 
 #### 4.2 Optimization
 
-- **Build Performance:**
+- [ ] **Build Performance:**
 
   Monitor the additional build time required for the ingestion pipeline. Optimize by caching results where possible.
 
-- **Client-Side Performance:**
+- [ ] **Client-Side Performance:**
 
   Ensure that loading and querying the JSON file is efficient. If the vectorstore is large, consider lazy loading or partitioning strategies.
 
 #### 4.3 Documentation & Deployment
 
-- **Documentation:**
+- [ ] **Documentation:**
 
   Create detailed usage guides, configuration instructions, and troubleshooting tips.
 
-- **Packaging:**
+- [ ] **Packaging:**
 
   Package your plugin (e.g., publish on npm) and include integration examples in your documentation.
 
-- **Deployment:**
+- [ ] **Deployment:**
 
   Release the plugin as a beta, gather feedback, and iterate on the solution before a full release.
 
@@ -277,11 +273,11 @@ module.exports = {
 ### Summary
 
 1. **Build-Time Ingestion:**
-   - Fetch documentation content → Split it into chunks → Compute embeddings using the OpenAI API → Serialize results as JSON via Docusaurus’s createData API.
+   - Fetch documentation content → Split it into chunks → Compute embeddings using the OpenAI API → Serialize results as JSON via Docusaurus's createData API.
 2. **Plugin Integration:**
    - Implement loadContent() and contentLoaded() to run the ingestion pipeline during the Docusaurus build and register a custom chat route.
 3. **Client-Side Chat Processing:**
-   - Load the JSON vectorstore → On user query, compute a query embedding (or use a client‑side model) → Perform a similarity search → Retrieve relevant chunks → Construct a prompt and generate an answer using OpenAI’s Chat API.
+   - Load the JSON vectorstore → On user query, compute a query embedding (or use a client‑side model) → Perform a similarity search → Retrieve relevant chunks → Construct a prompt and generate an answer using OpenAI's Chat API.
 4. **Testing & Deployment:**
    - Test each module, optimize for performance, document usage, and finally publish the plugin.
 
