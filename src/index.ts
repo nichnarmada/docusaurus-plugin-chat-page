@@ -2,7 +2,7 @@ import { LoadContext, Plugin } from "@docusaurus/types"
 import { normalizeUrl } from "@docusaurus/utils"
 import * as path from "path"
 import { loadContent } from "./content"
-import type { ContentAuditContent, OpenAIConfig } from "./types"
+import type { ChatPluginContent, OpenAIConfig } from "./types"
 
 export interface PluginOptions {
   label?: string
@@ -11,32 +11,26 @@ export interface PluginOptions {
   openai?: OpenAIConfig
 }
 
-interface NavbarItem {
-  to: string
-  label: string
-  position: "left" | "right"
-}
-
-interface DocusaurusThemeConfig {
-  navbar?: {
-    items?: NavbarItem[]
-  }
-}
-
 interface LoadContextWithOptions extends LoadContext {
   options?: {
     openai?: OpenAIConfig
   }
 }
 
-function normalizePath(inputPath: string): string {
-  return inputPath.startsWith("/") ? inputPath : `/${inputPath}`
+interface DocusaurusThemeConfig {
+  navbar?: {
+    items: Array<{ label: string; to: string; position?: string }>
+  }
 }
 
-export default function pluginContentAudit(
+function normalizePath(inputPath: string): string {
+  return inputPath.replace(/^\/+/, "")
+}
+
+export default function pluginChatPage(
   context: LoadContext,
   options: PluginOptions = {}
-): Plugin<ContentAuditContent> & {
+): Plugin<ChatPluginContent> & {
   getThemeConfig: (props: {
     themeConfig: DocusaurusThemeConfig
   }) => DocusaurusThemeConfig
@@ -47,8 +41,8 @@ export default function pluginContentAudit(
 
   // Default options
   const {
-    label = "Content Audit",
-    path: inputPath = "content-audit",
+    label = "Chat",
+    path: inputPath = "chat",
     showNavbar = true,
     openai,
   } = options
@@ -56,7 +50,7 @@ export default function pluginContentAudit(
   // Normalize the path
   const routePath = normalizePath(inputPath)
 
-  let content: ContentAuditContent | null = null
+  let content: ChatPluginContent | null = null
 
   // Create a context with options
   const contextWithOptions: LoadContextWithOptions = {
@@ -67,7 +61,7 @@ export default function pluginContentAudit(
   }
 
   return {
-    name: "docusaurus-plugin-content-audit",
+    name: "docusaurus-plugin-chat-page",
 
     getThemePath() {
       return path.resolve(__dirname, "./theme")
@@ -77,56 +71,49 @@ export default function pluginContentAudit(
       return path.resolve(__dirname, "./theme")
     },
 
-    getClientModules() {
-      return [path.resolve(__dirname, "./client/index")]
-    },
-
     async loadContent() {
       content = await loadContent(contextWithOptions)
       return content
     },
 
-    async contentLoaded({ actions, content }) {
-      const { addRoute, setGlobalData } = actions
+    async contentLoaded({ content, actions }) {
+      const { createData, addRoute } = actions
 
-      // Make content available to theme components
-      setGlobalData(content)
+      // Save embeddings as static asset
+      const embeddingsPath = await createData(
+        "embeddings.json",
+        JSON.stringify(content)
+      )
 
-      // Add route for the audit dashboard
+      // Add the chat route
       addRoute({
-        path: normalizeUrl([baseUrl, routePath]),
-        component: "@theme/ContentAudit",
+        path: routePath,
+        component: "@theme/ChatPage",
+        modules: {
+          embeddings: embeddingsPath,
+        },
         exact: true,
       })
     },
 
-    // Register paths to watch for changes
-    getPathsToWatch() {
-      return [
-        path.join(context.siteDir, "docs/**/*.{md,mdx}"),
-        path.join(context.siteDir, "src/pages/**/*.{md,mdx}"),
-      ]
-    },
-
-    // Add navbar/footer items
     getThemeConfig({ themeConfig }: { themeConfig: DocusaurusThemeConfig }) {
       if (!showNavbar) {
         return themeConfig
       }
 
-      // Add navbar item
-      const navbarItems = themeConfig.navbar?.items || []
-      const newNavbarItem: NavbarItem = {
-        to: routePath,
-        label: label,
-        position: "left",
-      }
-
+      // Add the chat page to the navbar
       return {
         ...themeConfig,
         navbar: {
           ...themeConfig.navbar,
-          items: [...navbarItems, newNavbarItem],
+          items: [
+            ...(themeConfig.navbar?.items || []),
+            {
+              label,
+              to: normalizeUrl([baseUrl, routePath]),
+              position: "left",
+            },
+          ],
         },
       }
     },

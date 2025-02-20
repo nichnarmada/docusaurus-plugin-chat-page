@@ -20,7 +20,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # Documentation
-/documentation
+# /documentation
 
 # Sample plugin
 /sample

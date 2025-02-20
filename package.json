@@ -1,14 +1,14 @@
 {
-  "name": "docusaurus-plugin-content-audit",
+  "name": "docusaurus-plugin-chat-page",
   "version": "0.1.0",
-  "description": "A Docusaurus plugin for auditing documentation content quality",
+  "description": "A Docusaurus plugin for adding an AI-powered chat interface to your documentation",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
     "build": "tsc && npm run copy-css",
     "watch": "tsc --watch",
     "clean": "rm -rf lib",
-    "copy-css": "cp src/theme/ContentAudit/styles.module.css lib/theme/ContentAudit/"
+    "copy-css": "cp src/theme/ChatPage/styles.module.css lib/theme/ChatPage/"
   },
   "files": [
     "lib",
@@ -35,14 +35,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/docusaurus-plugin-content-audit.git"
+    "url": "https://github.com/yourusername/docusaurus-plugin-chat-page.git"
   },
   "keywords": [
     "docusaurus",
     "documentation",
     "plugin",
-    "content",
-    "audit"
+    "chat",
+    "ai",
+    "openai",
+    "search"
   ],
   "author": "Your Name",
   "license": "MIT"
