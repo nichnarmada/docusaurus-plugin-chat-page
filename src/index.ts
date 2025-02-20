@@ -1,3 +1,5 @@
+/// <reference types="@docusaurus/module-type-aliases" />
+
 import { LoadContext, Plugin } from "@docusaurus/types"
 import { normalizeUrl } from "@docusaurus/utils"
 import * as path from "path"
@@ -7,19 +9,12 @@ import type { ChatPluginContent, OpenAIConfig } from "./types"
 export interface PluginOptions {
   label?: string
   path?: string
-  showNavbar?: boolean
   openai?: OpenAIConfig
 }
 
 interface LoadContextWithOptions extends LoadContext {
   options?: {
     openai?: OpenAIConfig
-  }
-}
-
-interface DocusaurusThemeConfig {
-  navbar?: {
-    items: Array<{ label: string; to: string; position?: string }>
   }
 }
 
@@ -30,59 +25,75 @@ function normalizePath(inputPath: string): string {
 export default function pluginChatPage(
   context: LoadContext,
   options: PluginOptions = {}
-): Plugin<ChatPluginContent> & {
-  getThemeConfig: (props: {
-    themeConfig: DocusaurusThemeConfig
-  }) => DocusaurusThemeConfig
-} {
+): Plugin<ChatPluginContent> {
   const {
     siteConfig: { baseUrl },
   } = context
 
+  console.log("Plugin initialized with options:", options)
+
   // Default options
-  const {
-    label = "Chat",
-    path: inputPath = "chat",
-    showNavbar = true,
-    openai,
-  } = options
+  const { label = "Chat", path: inputPath = "chat", openai } = options
+
+  console.log("OpenAI config:", openai)
 
   // Normalize the path
-  const routePath = normalizePath(inputPath)
-
-  let content: ChatPluginContent | null = null
-
-  // Create a context with options
-  const contextWithOptions: LoadContextWithOptions = {
-    ...context,
-    options: {
-      openai,
-    },
-  }
+  const routePath = normalizeUrl([baseUrl, inputPath])
 
   return {
     name: "docusaurus-plugin-chat-page",
 
     getThemePath() {
-      return path.resolve(__dirname, "./theme")
+      return "../lib/theme"
     },
 
     getTypeScriptThemePath() {
-      return path.resolve(__dirname, "./theme")
+      return "./theme"
+    },
+
+    getPathsToWatch() {
+      return [
+        path.join("src", "theme", "**", "*.{ts,tsx}"),
+        path.join("src", "utils", "**", "*.{ts,tsx}"),
+      ]
+    },
+
+    getClientModules() {
+      return [path.join("theme", "ChatPage", "styles.module.css")]
     },
 
     async loadContent() {
-      content = await loadContent(contextWithOptions)
-      return content
+      console.log("loadContent - OpenAI config:", openai)
+      if (!openai?.apiKey) {
+        throw new Error(
+          "OpenAI API key is required. Please add it to your docusaurus.config.js"
+        )
+      }
+      return loadContent({ ...context, options: { openai } })
     },
 
     async contentLoaded({ content, actions }) {
-      const { createData, addRoute } = actions
+      console.log("contentLoaded - Content:", content)
+      const { createData, addRoute, setGlobalData } = actions
 
-      // Save embeddings as static asset
+      // Set all global data in a single call
+      setGlobalData({
+        pluginId: "docusaurus-plugin-chat-page",
+        ...content,
+        config: {
+          openai,
+        },
+      })
+
+      // Create embeddings file
       const embeddingsPath = await createData(
         "embeddings.json",
-        JSON.stringify(content)
+        JSON.stringify({
+          ...content,
+          config: {
+            openai,
+          },
+        })
       )
 
       // Add the chat route
@@ -94,28 +105,6 @@ export default function pluginChatPage(
         },
         exact: true,
       })
-    },
-
-    getThemeConfig({ themeConfig }: { themeConfig: DocusaurusThemeConfig }) {
-      if (!showNavbar) {
-        return themeConfig
-      }
-
-      // Add the chat page to the navbar
-      return {
-        ...themeConfig,
-        navbar: {
-          ...themeConfig.navbar,
-          items: [
-            ...(themeConfig.navbar?.items || []),
-            {
-              label,
-              to: normalizeUrl([baseUrl, routePath]),
-              position: "left",
-            },
-          ],
-        },
-      }
     },
   }
 }

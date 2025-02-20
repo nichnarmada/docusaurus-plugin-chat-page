@@ -3,6 +3,10 @@ import * as fs from "fs/promises"
 import * as path from "path"
 import type { FileNode, ChatPluginContent, OpenAIConfig } from "./types"
 import { glob } from "glob"
+import matter from "gray-matter"
+import { remark } from "remark"
+import strip from "strip-markdown"
+import { createOpenAIClient } from "./services/openai"
 
 /**
  * Convert a flat list of file paths into a tree structure
@@ -55,28 +59,65 @@ function pathsToTree(files: string[], baseDir: string): FileNode[] {
 }
 
 /**
- * Parse frontmatter metadata from markdown content
+ * Split text into chunks intelligently, trying to break at paragraph boundaries
  */
-function parseFrontmatter(content: string): [Record<string, any>, string] {
-  const frontmatterRegex = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/
-  const match = content.match(frontmatterRegex)
+function splitIntoChunks(text: string, maxChunkSize: number = 1000): string[] {
+  // Split into paragraphs first
+  const paragraphs = text.split(/\n\s*\n/)
+  const chunks: string[] = []
+  let currentChunk = ""
 
-  if (!match) {
-    return [{}, content]
+  for (const paragraph of paragraphs) {
+    // If adding this paragraph would exceed max size, save current chunk and start new one
+    if (currentChunk && currentChunk.length + paragraph.length > maxChunkSize) {
+      chunks.push(currentChunk.trim())
+      currentChunk = ""
+    }
+
+    // If a single paragraph is too long, split it by sentences
+    if (paragraph.length > maxChunkSize) {
+      const sentences = paragraph.match(/[^.!?]+[.!?]+/g) || [paragraph]
+      for (const sentence of sentences) {
+        if (currentChunk.length + sentence.length > maxChunkSize) {
+          if (currentChunk) chunks.push(currentChunk.trim())
+          currentChunk = sentence
+        } else {
+          currentChunk = currentChunk ? `${currentChunk} ${sentence}` : sentence
+        }
+      }
+    } else {
+      // Add paragraph to current chunk
+      currentChunk = currentChunk
+        ? `${currentChunk}\n\n${paragraph}`
+        : paragraph
+    }
   }
 
-  try {
-    const metadata = match[1].split("\n").reduce((acc, line) => {
-      const [key, ...values] = line.split(":")
-      if (key && values.length) {
-        acc[key.trim()] = values.join(":").trim()
-      }
-      return acc
-    }, {} as Record<string, any>)
+  // Add the last chunk if there is one
+  if (currentChunk) {
+    chunks.push(currentChunk.trim())
+  }
 
-    return [metadata, match[2]]
-  } catch (error) {
-    return [{}, content]
+  return chunks
+}
+
+/**
+ * Process markdown content into plain text and extract frontmatter
+ */
+async function processMarkdown(content: string): Promise<{
+  plainText: string
+  frontmatter: Record<string, any>
+}> {
+  // Extract frontmatter using gray-matter
+  const { data: frontmatter, content: markdownContent } = matter(content)
+
+  // Convert markdown to plain text
+  const file = await remark().use(strip).process(markdownContent)
+  const plainText = String(file)
+
+  return {
+    plainText: plainText.trim(),
+    frontmatter,
   }
 }
 
@@ -97,10 +138,10 @@ export async function processDirectory(dir: string): Promise<FileNode[]> {
       if (node.type === "file") {
         try {
           const content = await fs.readFile(path.join(dir, node.path), "utf-8")
-          const [metadata, rawContent] = parseFrontmatter(content)
+          const { plainText, frontmatter } = await processMarkdown(content)
           node.content = {
-            metadata,
-            rawContent,
+            metadata: frontmatter,
+            rawContent: plainText,
           }
         } catch (error) {
           console.error(`Error processing file ${node.path}:`, error)
@@ -154,6 +195,37 @@ function treeToFlatList(
 }
 
 /**
+ * Generate embeddings for chunks in batches
+ */
+async function generateEmbeddings(
+  chunks: Array<{ text: string; metadata: Record<string, any> }>,
+  openAIConfig: OpenAIConfig,
+  batchSize: number = 20
+) {
+  const openAIClient = createOpenAIClient({
+    apiKey: openAIConfig.apiKey,
+    // model: openAIConfig.embeddingModel,
+  })
+
+  const results = []
+  for (let i = 0; i < chunks.length; i += batchSize) {
+    const batch = chunks.slice(i, i + batchSize)
+    const texts = batch.map((chunk) => chunk.text)
+    const embeddings = await openAIClient.generateEmbeddings(texts)
+
+    for (let j = 0; j < batch.length; j++) {
+      results.push({
+        text: batch[j].text,
+        metadata: batch[j].metadata,
+        embedding: embeddings[j],
+      })
+    }
+  }
+
+  return results
+}
+
+/**
  * Load all content and prepare for embedding generation
  */
 export async function loadContent(
@@ -179,13 +251,30 @@ export async function loadContent(
   // Convert trees to flat lists and combine
   const allFiles = [...treeToFlatList(docsTree), ...treeToFlatList(pagesTree)]
 
-  // TODO: Implement chunk generation and embedding computation
-  const chunks: ChatPluginContent["chunks"] = []
+  // Process each file into chunks with metadata
+  const allChunks = allFiles.flatMap((file) => {
+    const textChunks = splitIntoChunks(file.content)
+    return textChunks.map((text, index) => ({
+      text,
+      metadata: {
+        ...file.metadata,
+        filePath: file.filePath,
+        position: index,
+      },
+    }))
+  })
+
+  // Generate embeddings for all chunks
+  const chunksWithEmbeddings = await generateEmbeddings(
+    allChunks,
+    options.openai!,
+    20
+  )
 
   return {
-    chunks,
+    chunks: chunksWithEmbeddings,
     metadata: {
-      totalChunks: chunks.length,
+      totalChunks: chunksWithEmbeddings.length,
       lastUpdated: new Date().toISOString(),
     },
   }

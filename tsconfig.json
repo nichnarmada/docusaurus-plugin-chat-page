@@ -14,7 +14,8 @@
     "skipLibCheck": true,
     "moduleResolution": "node",
     "jsx": "react",
-    "declaration": true
+    "declaration": true,
+    "typeRoots": ["./node_modules/@types", "./src/types"]
   },
   "include": ["src"],
   "exclude": ["node_modules", "lib", "sample"]
