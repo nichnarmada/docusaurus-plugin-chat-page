@@ -50,12 +50,6 @@ export default function ChatPage(): JSX.Element {
           }
         }
       }
-
-      console.log("ChatPage - Plugin data received:", {
-        hasChunks: Boolean(chunks),
-        hasMetadata: Boolean(metadata),
-        hasConfig: Boolean(config?.openai),
-      })
     }
   }, [pluginData])
 

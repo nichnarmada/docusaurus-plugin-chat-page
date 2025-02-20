@@ -30,12 +30,8 @@ export default function pluginChatPage(
     siteConfig: { baseUrl },
   } = context
 
-  console.log("Plugin initialized with options:", options)
-
   // Default options
   const { label = "Chat", path: inputPath = "chat", openai } = options
-
-  console.log("OpenAI config:", openai)
 
   // Normalize the path
   const routePath = normalizeUrl([baseUrl, inputPath])
@@ -73,7 +69,6 @@ export default function pluginChatPage(
     },
 
     async contentLoaded({ content, actions }) {
-      console.log("contentLoaded - Content:", content)
       const { createData, addRoute, setGlobalData } = actions
 
       // Set all global data in a single call

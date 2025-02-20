@@ -7,6 +7,7 @@ import matter from "gray-matter"
 import { remark } from "remark"
 import strip from "strip-markdown"
 import { createOpenAIClient } from "./services/openai"
+import process from "process"
 
 /**
  * Convert a flat list of file paths into a tree structure
@@ -131,7 +132,11 @@ export async function processDirectory(dir: string): Promise<FileNode[]> {
       absolute: false,
     })
 
+    console.log(`\nProcessing ${files.length} markdown files from ${dir}...`)
+
     const tree = pathsToTree(files, dir)
+    let processedFiles = 0
+    const totalFiles = files.length
 
     // Process each file node
     const processNode = async (node: FileNode): Promise<void> => {
@@ -143,8 +148,13 @@ export async function processDirectory(dir: string): Promise<FileNode[]> {
             metadata: frontmatter,
             rawContent: plainText,
           }
+          processedFiles++
+          const progress = Math.round((processedFiles / totalFiles) * 100)
+          process.stdout.write(
+            `\rProgress: ${progress}% (${processedFiles}/${totalFiles} files)`
+          )
         } catch (error) {
-          console.error(`Error processing file ${node.path}:`, error)
+          console.error(`\nError processing file ${node.path}:`, error)
         }
       }
 
@@ -156,6 +166,7 @@ export async function processDirectory(dir: string): Promise<FileNode[]> {
 
     // Process all root nodes
     await Promise.all(tree.map(processNode))
+    console.log("\nFile processing complete!")
 
     return tree
   } catch (error) {
@@ -208,6 +219,13 @@ async function generateEmbeddings(
   })
 
   const results = []
+  const totalChunks = chunks.length
+  let processedChunks = 0
+
+  console.log(
+    `\nGenerating embeddings for ${totalChunks} chunks in batches of ${batchSize}...`
+  )
+
   for (let i = 0; i < chunks.length; i += batchSize) {
     const batch = chunks.slice(i, i + batchSize)
     const texts = batch.map((chunk) => chunk.text)
@@ -220,8 +238,15 @@ async function generateEmbeddings(
         embedding: embeddings[j],
       })
     }
+
+    processedChunks += batch.length
+    const progress = Math.round((processedChunks / totalChunks) * 100)
+    process.stdout.write(
+      `\rProgress: ${progress}% (${processedChunks}/${totalChunks} chunks)`
+    )
   }
 
+  console.log("\nEmbeddings generation complete!")
   return results
 }
 
@@ -239,6 +264,8 @@ export async function loadContent(
     )
   }
 
+  console.log("\n=== Starting content processing ===")
+
   const docsDir = path.join(siteDir, "docs")
   const pagesDir = path.join(siteDir, "src/pages")
 
@@ -250,10 +277,21 @@ export async function loadContent(
 
   // Convert trees to flat lists and combine
   const allFiles = [...treeToFlatList(docsTree), ...treeToFlatList(pagesTree)]
+  console.log(`\nFound ${allFiles.length} total files to process`)
 
   // Process each file into chunks with metadata
+  console.log("\nSplitting content into chunks...")
+  let processedForChunking = 0
+  const totalForChunking = allFiles.length
+
   const allChunks = allFiles.flatMap((file) => {
     const textChunks = splitIntoChunks(file.content)
+    processedForChunking++
+    const progress = Math.round((processedForChunking / totalForChunking) * 100)
+    process.stdout.write(
+      `\rProgress: ${progress}% (${processedForChunking}/${totalForChunking} files chunked)`
+    )
+
     return textChunks.map((text, index) => ({
       text,
       metadata: {
@@ -263,6 +301,9 @@ export async function loadContent(
       },
     }))
   })
+  console.log(
+    `\nContent splitting complete! Generated ${allChunks.length} total chunks`
+  )
 
   // Generate embeddings for all chunks
   const chunksWithEmbeddings = await generateEmbeddings(
@@ -270,6 +311,11 @@ export async function loadContent(
     options.openai!,
     20
   )
+
+  console.log("\n=== Content processing complete! ===")
+  console.log(`Total files processed: ${allFiles.length}`)
+  console.log(`Total chunks generated: ${allChunks.length}`)
+  console.log(`Total embeddings created: ${chunksWithEmbeddings.length}`)
 
   return {
     chunks: chunksWithEmbeddings,
