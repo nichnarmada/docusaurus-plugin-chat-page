@@ -39,7 +39,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/docusaurus-plugin-chat-page.git"
+    "url": "git+https://github.com/nichnarmada/docusaurus-plugin-chat-page.git"
   },
   "keywords": [
     "docusaurus",
@@ -50,6 +50,6 @@
     "openai",
     "search"
   ],
-  "author": "Your Name",
+  "author": "Nicholas Narmada",
   "license": "MIT"
 }
