@@ -57,6 +57,29 @@ module.exports = {
 }
 ```
 
+### Adding to Navigation
+
+To add the chat page to your site's navigation bar, update the `themeConfig` in your `docusaurus.config.js`:
+
+```js
+module.exports = {
+  // ...
+  themeConfig: {
+    navbar: {
+      items: [
+        // ... your other navbar items
+        {
+          to: "/chat", // Make sure this matches your plugin's path configuration
+          label: "Chat",
+          position: "left",
+        },
+        // ...
+      ],
+    },
+  },
+}
+```
+
 ## Environment Variables
 
 Create a `.env` file in your project root:
