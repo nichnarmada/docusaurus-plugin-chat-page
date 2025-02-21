@@ -62,7 +62,7 @@ function pathsToTree(files: string[], baseDir: string): FileNode[] {
 /**
  * Split text into chunks intelligently, trying to break at paragraph boundaries
  */
-function splitIntoChunks(text: string, maxChunkSize: number = 1000): string[] {
+function splitIntoChunks(text: string, maxChunkSize: number = 1500): string[] {
   // Split into paragraphs first
   const paragraphs = text.split(/\n\s*\n/)
   const chunks: string[] = []
@@ -211,11 +211,10 @@ function treeToFlatList(
 async function generateEmbeddings(
   chunks: Array<{ text: string; metadata: Record<string, any> }>,
   openAIConfig: OpenAIConfig,
-  batchSize: number = 20
+  batchSize: number = 10
 ) {
   const openAIClient = createOpenAIClient({
     apiKey: openAIConfig.apiKey,
-    // model: openAIConfig.embeddingModel,
   })
 
   const results = []
@@ -229,21 +228,37 @@ async function generateEmbeddings(
   for (let i = 0; i < chunks.length; i += batchSize) {
     const batch = chunks.slice(i, i + batchSize)
     const texts = batch.map((chunk) => chunk.text)
-    const embeddings = await openAIClient.generateEmbeddings(texts)
 
-    for (let j = 0; j < batch.length; j++) {
-      results.push({
-        text: batch[j].text,
-        metadata: batch[j].metadata,
-        embedding: embeddings[j],
-      })
+    try {
+      const embeddings = await openAIClient.generateEmbeddings(texts)
+
+      for (let j = 0; j < batch.length; j++) {
+        results.push({
+          text: batch[j].text,
+          metadata: batch[j].metadata,
+          embedding: embeddings[j],
+        })
+      }
+
+      processedChunks += batch.length
+      const progress = Math.round((processedChunks / totalChunks) * 100)
+      const memoryUsage = Math.round(
+        process.memoryUsage().heapUsed / 1024 / 1024
+      )
+      process.stdout.write(
+        `\rProgress: ${progress}% (${processedChunks}/${totalChunks} chunks) - Memory: ${memoryUsage}MB`
+      )
+
+      // Clear temporary arrays to help with garbage collection
+      batch.length = 0
+      texts.length = 0
+
+      // Add a small delay between batches
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    } catch (error) {
+      console.error(`\nError processing batch starting at chunk ${i}:`, error)
+      throw error
     }
-
-    processedChunks += batch.length
-    const progress = Math.round((processedChunks / totalChunks) * 100)
-    process.stdout.write(
-      `\rProgress: ${progress}% (${processedChunks}/${totalChunks} chunks)`
-    )
   }
 
   console.log("\nEmbeddings generation complete!")
@@ -283,24 +298,41 @@ export async function loadContent(
   console.log("\nSplitting content into chunks...")
   let processedForChunking = 0
   const totalForChunking = allFiles.length
+  const MAX_CHUNKS_PER_FILE = 10
+  const allChunks = []
 
-  const allChunks = allFiles.flatMap((file) => {
+  // Process files sequentially instead of using flatMap
+  for (const file of allFiles) {
     const textChunks = splitIntoChunks(file.content)
+    const limitedChunks =
+      textChunks.length > MAX_CHUNKS_PER_FILE
+        ? textChunks.slice(0, MAX_CHUNKS_PER_FILE)
+        : textChunks
+
+    // Add chunks for this file with metadata
+    for (let index = 0; index < limitedChunks.length; index++) {
+      allChunks.push({
+        text: limitedChunks[index],
+        metadata: {
+          ...file.metadata,
+          filePath: file.filePath,
+          position: index,
+        },
+      })
+    }
+
     processedForChunking++
     const progress = Math.round((processedForChunking / totalForChunking) * 100)
+    const memoryUsage = Math.round(process.memoryUsage().heapUsed / 1024 / 1024)
     process.stdout.write(
-      `\rProgress: ${progress}% (${processedForChunking}/${totalForChunking} files chunked)`
+      `\rProgress: ${progress}% (${processedForChunking}/${totalForChunking} files chunked) - Memory: ${memoryUsage}MB`
     )
 
-    return textChunks.map((text, index) => ({
-      text,
-      metadata: {
-        ...file.metadata,
-        filePath: file.filePath,
-        position: index,
-      },
-    }))
-  })
+    // Clear the temporary arrays to help with garbage collection
+    textChunks.length = 0
+    limitedChunks.length = 0
+  }
+
   console.log(
     `\nContent splitting complete! Generated ${allChunks.length} total chunks`
   )
@@ -309,7 +341,7 @@ export async function loadContent(
   const chunksWithEmbeddings = await generateEmbeddings(
     allChunks,
     options.openai!,
-    20
+    10
   )
 
   console.log("\n=== Content processing complete! ===")
