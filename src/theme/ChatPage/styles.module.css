@@ -37,6 +37,82 @@
   white-space: pre-wrap;
 }
 
+/* Markdown styles */
+.messageContent :global(p) {
+  margin: 0 0 1rem 0;
+}
+
+.messageContent :global(p:last-child) {
+  margin-bottom: 0;
+}
+
+.messageContent :global(strong) {
+  font-weight: 600;
+}
+
+.messageContent :global(em) {
+  font-style: italic;
+}
+
+.messageContent :global(code) {
+  background: rgba(0, 0, 0, 0.1);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-size: 0.9em;
+  font-family: var(--ifm-font-family-monospace);
+}
+
+.messageContent :global(pre) {
+  background: rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.messageContent :global(pre code) {
+  background: none;
+  padding: 0;
+  font-size: 0.9em;
+}
+
+.messageContent :global(ul),
+.messageContent :global(ol) {
+  margin: 0 0 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.messageContent :global(li) {
+  margin: 0.25rem 0;
+}
+
+.messageContent :global(a) {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.messageContent :global(blockquote) {
+  margin: 1rem 0;
+  padding-left: 1rem;
+  border-left: 3px solid rgba(0, 0, 0, 0.2);
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.assistantMessage .messageContent :global(blockquote) {
+  border-left-color: var(--ifm-color-emphasis-300);
+  color: var(--ifm-color-emphasis-700);
+}
+
+.userMessage .messageContent :global(code),
+.userMessage .messageContent :global(pre) {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.userMessage .messageContent :global(blockquote) {
+  border-left-color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.8);
+}
+
 .userMessage .messageContent {
   background: var(--ifm-color-primary);
   color: white;

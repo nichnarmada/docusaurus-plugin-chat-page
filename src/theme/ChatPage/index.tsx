@@ -6,6 +6,7 @@ import type { DocumentChunk, DocumentChunkWithEmbedding } from "../../types"
 import styles from "./styles.module.css"
 import OpenAI from "openai"
 import { cosineSimilarity } from "../../utils/vector"
+import ReactMarkdown from "react-markdown"
 
 interface Message {
   role: "user" | "assistant"
@@ -269,7 +270,7 @@ export default function ChatPage(): JSX.Element {
                     }`}
                   >
                     <div className={styles.messageContent}>
-                      {message.content}
+                      <ReactMarkdown>{message.content}</ReactMarkdown>
                     </div>
                     <div className={styles.messageTimestamp}>
                       {message.timestamp.toLocaleTimeString()}
