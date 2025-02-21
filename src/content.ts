@@ -6,8 +6,9 @@ import { glob } from "glob"
 import matter from "gray-matter"
 import { remark } from "remark"
 import strip from "strip-markdown"
-import { createOpenAIClient } from "./services/openai"
+import OpenAI from "openai"
 import process from "process"
+import { createAIService } from "./services/ai"
 
 /**
  * Convert a flat list of file paths into a tree structure
@@ -213,10 +214,7 @@ async function generateEmbeddings(
   openAIConfig: OpenAIConfig,
   batchSize: number = 10
 ) {
-  const openAIClient = createOpenAIClient({
-    apiKey: openAIConfig.apiKey,
-  })
-
+  const aiService = createAIService(openAIConfig)
   const results = []
   const totalChunks = chunks.length
   let processedChunks = 0
@@ -230,7 +228,7 @@ async function generateEmbeddings(
     const texts = batch.map((chunk) => chunk.text)
 
     try {
-      const embeddings = await openAIClient.generateEmbeddings(texts)
+      const embeddings = await aiService.generateEmbeddings(texts)
 
       for (let j = 0; j < batch.length; j++) {
         results.push({

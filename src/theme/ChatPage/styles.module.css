@@ -1,12 +1,120 @@
 .chatContainer {
   display: flex;
-  flex-direction: column;
-  height: calc(100vh - 200px);
+  gap: 1rem;
+  height: calc(100vh - 300px);
   min-height: 500px;
   background: var(--ifm-background-surface-color);
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  margin-bottom: 2rem;
+  margin-top: 2rem;
+}
+
+.chatSideMenu {
+  width: 260px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--ifm-color-emphasis-200);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: var(--ifm-background-color);
+  border-radius: 8px 0 0 8px;
+}
+
+.newChatButton {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--ifm-color-primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.newChatButton:hover {
+  background: var(--ifm-color-primary-darker);
+}
+
+.chatGroup {
+  margin-bottom: 1rem;
+}
+
+.chatGroupHeader {
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  color: var(--ifm-color-emphasis-600);
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.chatList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  overflow-y: auto;
+  height: calc(100% - 50px); /* Adjust based on new chat button height */
+}
+
+.chatListItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s;
+  margin: 0 0.5rem;
+}
+
+.chatListItem:hover {
+  background-color: var(--ifm-color-emphasis-200);
+}
+
+.chatListItem.active {
+  background-color: var(--ifm-color-emphasis-300);
+}
+
+.chatTitle {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 0.5rem;
+}
+
+.deleteButton {
+  background: none;
+  border: none;
+  color: var(--ifm-color-emphasis-500);
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  font-size: 1.2rem;
+  line-height: 1;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  opacity: 0.5;
+}
+
+.chatListItem:hover .deleteButton,
+.chatListItem.active .deleteButton,
+.deleteButton:hover {
+  opacity: 1;
+}
+
+.deleteButton:hover {
+  background: var(--ifm-color-emphasis-300);
+  color: var(--ifm-color-emphasis-700);
+}
+
+.chatMain {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--ifm-background-color);
+  border-radius: 0 8px 8px 0;
 }
 
 .chatHistory {
@@ -141,7 +249,7 @@
   padding: 1rem;
   border-top: 1px solid var(--ifm-color-emphasis-200);
   background: var(--ifm-background-color);
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 0 8px 0;
 }
 
 .chatInput {

@@ -12,16 +12,6 @@ export interface PluginOptions {
   openai?: OpenAIConfig
 }
 
-interface LoadContextWithOptions extends LoadContext {
-  options?: {
-    openai?: OpenAIConfig
-  }
-}
-
-function normalizePath(inputPath: string): string {
-  return inputPath.replace(/^\/+/, "")
-}
-
 export default function pluginChatPage(
   context: LoadContext,
   options: PluginOptions = {}
@@ -59,7 +49,6 @@ export default function pluginChatPage(
     },
 
     async loadContent() {
-      console.log("loadContent - OpenAI config:", openai)
       if (!openai?.apiKey) {
         throw new Error(
           "OpenAI API key is required. Please add it to your docusaurus.config.js"
@@ -71,7 +60,6 @@ export default function pluginChatPage(
     async contentLoaded({ content, actions }) {
       const { createData, addRoute, setGlobalData } = actions
 
-      // Set all global data in a single call
       setGlobalData({
         pluginId: "docusaurus-plugin-chat-page",
         ...content,
@@ -80,7 +68,6 @@ export default function pluginChatPage(
         },
       })
 
-      // Create embeddings file
       const embeddingsPath = await createData(
         "embeddings.json",
         JSON.stringify({
@@ -91,7 +78,6 @@ export default function pluginChatPage(
         })
       )
 
-      // Add the chat route
       addRoute({
         path: routePath,
         component: "@theme/ChatPage",

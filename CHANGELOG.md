@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.1.3] - 2024-03-22
+
+### Added
+
+- Added persistent chat storage using localStorage
+- Multiple chat instances now persist across page refreshes
+- Chat history and active chat selection are preserved
+- Added error handling for storage operations
+- Improved state initialization to handle SSR correctly
+- Added chat grouping by date (Today, Yesterday, Month/Year)
+- Added timestamps (createdAt, updatedAt) to chat instances
+- Chats are now sorted by most recent activity
+- Improved chat deletion UX with always-visible delete buttons
+
+### Changed
+
+- Updated chat list UI with date-based grouping headers
+- Modified delete button visibility for better discoverability
+- Improved TypeScript type declarations for CSS modules
+
 ## [0.1.2] - 2024-03-21
 
 ### Added
