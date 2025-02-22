@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.4] - 2024-03-22
+
+### Security
+
+- Enhanced system prompt with strict guardrails to prevent off-topic discussions
+- Added explicit rules to ensure AI responses stay within documentation context
+- Improved response filtering to reject prompt injection attempts
+- Added mandatory documentation citation requirement for all responses
+- Implemented strict role enforcement to prevent AI impersonation
+
 ## [0.1.3] - 2024-03-22
 
 ### Added
