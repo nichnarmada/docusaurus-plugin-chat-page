@@ -1,5 +1,5 @@
 import OpenAI from "openai"
-import type { OpenAIConfig } from "../types"
+import type { BaseProviderConfig } from "../types"
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions"
 
 export interface AIService {
@@ -9,7 +9,7 @@ export interface AIService {
   ): AsyncGenerator<string, void, unknown>
 }
 
-export function createAIService(config: OpenAIConfig): AIService {
+export function createAIService(config: BaseProviderConfig): AIService {
   const client = new OpenAI({
     apiKey: config.apiKey,
     dangerouslyAllowBrowser: true,

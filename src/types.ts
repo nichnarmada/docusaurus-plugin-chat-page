@@ -47,12 +47,61 @@ export interface ChatPluginContent {
   }
 }
 
-export interface OpenAIConfig {
+// Base config interface for most providers
+export interface BaseProviderConfig {
   apiKey: string
+  model?: string
 }
 
+// Special config for Pinecone since it needs additional fields
+export interface PineconeConfig extends BaseProviderConfig {
+  environment: string
+  index: string
+}
+
+// Enum for LLM providers with their corresponding package names
+export enum LLMProviderType {
+  OPENAI = "@langchain/openai",
+  ANTHROPIC = "@langchain/anthropic",
+  GOOGLE_GENAI = "@langchain/google-genai",
+  XAI = "@langchain/xai",
+}
+
+// Enum for embedding providers with their corresponding package names
+export enum EmbeddingProviderType {
+  OPENAI = "@langchain/openai",
+  GOOGLE_GENAI = "@langchain/google-genai",
+  PINECONE = "@langchain/pinecone",
+}
+
+// Type for standard providers that use BaseProviderConfig
+type StandardProvider<T extends LLMProviderType | EmbeddingProviderType> = {
+  provider: T
+  config: BaseProviderConfig
+}
+
+// Type for providers that need special config (like Pinecone)
+type SpecialProvider<T extends LLMProviderType | EmbeddingProviderType> = {
+  provider: T
+  config: PineconeConfig
+}
+
+// Union type for LLM providers
+export type LLMProvider = StandardProvider<LLMProviderType>
+
+// Union type for embedding providers
+export type EmbeddingProvider =
+  | StandardProvider<EmbeddingProviderType.OPENAI>
+  | StandardProvider<EmbeddingProviderType.GOOGLE_GENAI>
+  | SpecialProvider<EmbeddingProviderType.PINECONE>
+
+// Plugin options interface
 export interface PluginOptions {
   label?: string
   path?: string
-  openai?: OpenAIConfig
+  // For backward compatibility
+  openai?: BaseProviderConfig
+  // New provider configurations
+  llm?: LLMProvider
+  embeddings?: EmbeddingProvider
 }

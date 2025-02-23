@@ -16,16 +16,35 @@
   ],
   "dependencies": {
     "@docusaurus/utils": "^3.7.0",
+    "@langchain/core": "^0.3.40",
     "gray-matter": "^4.0.3",
-    "openai": "^4.85.2",
+    "langchain": "^0.3.19",
     "react-markdown": "^10.0.0",
     "remark": "^15.0.1",
     "strip-markdown": "^6.0.0"
   },
   "peerDependencies": {
     "@docusaurus/core": ">=2.0.0",
+    "@langchain/anthropic": "^0.3.13",
+    "@langchain/google-genai": "^0.1.8",
+    "@langchain/openai": "^0.4.4",
+    "@langchain/xai": "^0.0.2",
     "react": ">=16.8.0",
     "react-dom": ">=16.8.0"
+  },
+  "peerDependenciesMeta": {
+    "@langchain/openai": {
+      "optional": true
+    },
+    "@langchain/anthropic": {
+      "optional": true
+    },
+    "@langchain/google-genai": {
+      "optional": true
+    },
+    "@langchain/xai": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "^3.7.0",

@@ -1,12 +1,11 @@
 import { LoadContext } from "@docusaurus/types"
 import * as fs from "fs/promises"
 import * as path from "path"
-import type { FileNode, ChatPluginContent, OpenAIConfig } from "./types"
+import type { FileNode, ChatPluginContent, BaseProviderConfig } from "./types"
 import { glob } from "glob"
 import matter from "gray-matter"
 import { remark } from "remark"
 import strip from "strip-markdown"
-import OpenAI from "openai"
 import process from "process"
 import { createAIService } from "./services/ai"
 
@@ -211,7 +210,7 @@ function treeToFlatList(
  */
 async function generateEmbeddings(
   chunks: Array<{ text: string; metadata: Record<string, any> }>,
-  openAIConfig: OpenAIConfig,
+  openAIConfig: BaseProviderConfig,
   batchSize: number = 10
 ) {
   const aiService = createAIService(openAIConfig)
@@ -267,7 +266,7 @@ async function generateEmbeddings(
  * Load all content and prepare for embedding generation
  */
 export async function loadContent(
-  context: LoadContext & { options?: { openai?: OpenAIConfig } }
+  context: LoadContext & { options?: { openai?: BaseProviderConfig } }
 ): Promise<ChatPluginContent> {
   const { siteDir, options } = context
 
