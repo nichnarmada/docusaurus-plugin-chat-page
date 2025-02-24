@@ -1,13 +1,21 @@
 import { LoadContext } from "@docusaurus/types"
 import * as fs from "fs/promises"
 import * as path from "path"
-import type { FileNode, ChatPluginContent, BaseProviderConfig } from "./types"
+import type {
+  FileNode,
+  ChatPluginContent,
+  BaseProviderConfig,
+  PluginOptions,
+  LLMProvider,
+  EmbeddingProvider,
+} from "./types"
 import { glob } from "glob"
 import matter from "gray-matter"
 import { remark } from "remark"
 import strip from "strip-markdown"
 import process from "process"
 import { createAIService } from "./services/ai"
+import { EmbeddingProviderType, LLMProviderType } from "./types"
 
 /**
  * Convert a flat list of file paths into a tree structure
@@ -210,10 +218,11 @@ function treeToFlatList(
  */
 async function generateEmbeddings(
   chunks: Array<{ text: string; metadata: Record<string, any> }>,
-  openAIConfig: BaseProviderConfig,
+  llmConfig: LLMProvider,
+  embeddingsConfig: EmbeddingProvider,
   batchSize: number = 10
 ) {
-  const aiService = createAIService(openAIConfig)
+  const aiService = createAIService(llmConfig, embeddingsConfig)
   const results = []
   const totalChunks = chunks.length
   let processedChunks = 0
@@ -266,14 +275,30 @@ async function generateEmbeddings(
  * Load all content and prepare for embedding generation
  */
 export async function loadContent(
-  context: LoadContext & { options?: { openai?: BaseProviderConfig } }
+  context: LoadContext & { options?: PluginOptions }
 ): Promise<ChatPluginContent> {
   const { siteDir, options } = context
 
-  if (!options?.openai?.apiKey) {
+  // Check for valid provider configuration
+  if (!options?.llm && !options?.openai) {
     throw new Error(
-      "OpenAI API key is required. Please add it to your docusaurus.config.js"
+      "No LLM provider configured. Please configure a provider in your docusaurus.config.js:\n" +
+        "Example configurations:\n" +
+        "- OpenAI: { openai: { apiKey: 'your-api-key' } }\n" +
+        "- Anthropic: { llm: { provider: '@langchain/anthropic', config: { apiKey: 'your-api-key' } } }\n" +
+        "- Google: { llm: { provider: '@langchain/google-genai', config: { apiKey: 'your-api-key' } } }"
     )
+  }
+
+  // For backward compatibility with openai config
+  const llmConfig = options.llm || {
+    provider: LLMProviderType.OPENAI,
+    config: options.openai!,
+  }
+
+  const embeddingsConfig = options.embeddings || {
+    provider: EmbeddingProviderType.OPENAI,
+    config: options.openai!,
   }
 
   console.log("\n=== Starting content processing ===")
@@ -337,7 +362,8 @@ export async function loadContent(
   // Generate embeddings for all chunks
   const chunksWithEmbeddings = await generateEmbeddings(
     allChunks,
-    options.openai!,
+    llmConfig,
+    embeddingsConfig,
     10
   )
 

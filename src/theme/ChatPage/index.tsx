@@ -2,12 +2,18 @@ import React, { useState, useRef, useEffect } from "react"
 import Layout from "@theme/Layout"
 import { usePluginData } from "@docusaurus/useGlobalData"
 import useIsBrowser from "@docusaurus/useIsBrowser"
-import type { DocumentChunk, DocumentChunkWithEmbedding } from "../../types"
+import type {
+  DocumentChunkWithEmbedding,
+  LLMProvider,
+  EmbeddingProvider,
+  PluginOptions,
+} from "../../types"
+import { LLMProviderType, EmbeddingProviderType } from "../../types"
+import { DEFAULT_LLM_MODELS, DEFAULT_EMBEDDING_MODELS } from "../../constants"
 import styles from "./styles.module.css"
 import { cosineSimilarity } from "../../utils/vector"
 import ReactMarkdown from "react-markdown"
 import { createAIService } from "../../services/ai"
-import type { ChatCompletionMessageParam } from "openai/resources/chat/completions"
 
 interface Message {
   role: "user" | "assistant"
@@ -176,15 +182,11 @@ export default function ChatPage(): JSX.Element {
       totalChunks: number
       lastUpdated: string
     }
-    config: {
-      openai: {
-        apiKey: string
-      }
-    }
+    config: PluginOptions
   }
 
-  // Check for required data
-  if (!chunks || !metadata || !config?.openai?.apiKey) {
+  // Check for required data with updated config structure
+  if (!chunks || !metadata || !(config?.llm || config?.openai)) {
     return (
       <Layout title="Chat" description="Chat with your documentation">
         <div className="container margin-vert--lg">
@@ -194,7 +196,9 @@ export default function ChatPage(): JSX.Element {
             <ul>
               {!chunks && <li>Document chunks</li>}
               {!metadata && <li>Metadata</li>}
-              {!config?.openai?.apiKey && <li>OpenAI API key</li>}
+              {!(config?.llm || config?.openai) && (
+                <li>LLM provider configuration</li>
+              )}
             </ul>
           </div>
         </div>
@@ -202,7 +206,24 @@ export default function ChatPage(): JSX.Element {
     )
   }
 
-  const aiService = createAIService(config.openai)
+  // Handle backward compatibility with openai config
+  const llmProvider: LLMProvider = config.llm || {
+    provider: LLMProviderType.OPENAI,
+    config: {
+      apiKey: config.openai!.apiKey,
+      model: DEFAULT_LLM_MODELS[LLMProviderType.OPENAI],
+    },
+  }
+
+  const embeddingsProvider: EmbeddingProvider = config.embeddings || {
+    provider: EmbeddingProviderType.OPENAI,
+    config: {
+      apiKey: config.openai!.apiKey,
+      model: DEFAULT_EMBEDDING_MODELS[EmbeddingProviderType.OPENAI],
+    },
+  }
+
+  const aiService = createAIService(llmProvider, embeddingsProvider)
 
   const findRelevantChunks = async (query: string, topK: number = 3) => {
     try {
@@ -325,7 +346,7 @@ export default function ChatPage(): JSX.Element {
         .map((chunk) => `${chunk.text}\nSource: ${chunk.metadata.filePath}`)
         .join("\n\n")
 
-      const messages: ChatCompletionMessageParam[] = [
+      const messages = [
         {
           role: "system",
           content: `You are a documentation assistant with a strictly limited scope. You can ONLY answer questions about the provided documentation context. You must follow these rules:

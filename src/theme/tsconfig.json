@@ -8,6 +8,12 @@
     "esModuleInterop": true,
     "allowJs": true
   },
-  "include": ["./**/*", "../types.ts", "../utils/**/*", "../services/**/*"],
+  "include": [
+    "./**/*",
+    "../types.ts",
+    "../constants.ts",
+    "../utils/**/*",
+    "../services/**/*"
+  ],
   "exclude": ["**/*.test.ts", "**/*.test.tsx"]
 }

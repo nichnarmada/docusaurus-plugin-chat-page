@@ -1,5 +1,44 @@
 # Changelog
 
+## [0.1.5] - Unreleased
+
+### Added
+
+- Model-agnostic architecture using LangChain v0.3
+- Support for multiple LLM providers:
+  - OpenAI (GPT models)
+  - Anthropic (Claude models)
+  - Google (Gemini models)
+  - XAI (Grok models)
+- Support for multiple embedding providers:
+  - OpenAI embeddings
+  - Google embeddings
+  - Pinecone
+- Automatic provider-specific package installation
+- Provider-specific default configurations:
+  - Default model selections per provider
+  - Appropriate chunk sizes
+  - Context window limits
+  - Temperature settings
+  - Batch sizes for embeddings
+  - Task types for Google embeddings
+
+### Changed
+
+- Refactored type system for better maintainability
+- Updated configuration structure to support multiple providers
+- Maintained backward compatibility with existing OpenAI-only configuration
+- Improved error messages with provider-specific configuration examples
+- Updated embeddings generation to use provider-specific settings
+
+### Developer Experience
+
+- Added comprehensive provider configuration examples
+- Improved type safety and developer autocomplete
+- Added detailed documentation for each provider's capabilities
+- Streamlined provider-specific package management
+- Made provider packages optional peer dependencies
+
 ## [0.1.4] - 2024-03-22
 
 ### Security
