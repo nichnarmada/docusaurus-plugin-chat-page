@@ -128,7 +128,7 @@ async function processMarkdown(content: string): Promise<{
  */
 export async function processDirectory(dir: string): Promise<FileNode[]> {
   try {
-    const files = glob.sync("**/*.md", {
+    const files = glob.sync("**/*.{md,mdx}", {
       cwd: dir,
       absolute: false,
     })
