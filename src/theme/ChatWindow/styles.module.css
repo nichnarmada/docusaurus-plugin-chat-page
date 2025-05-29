@@ -1,0 +1,169 @@
+/* src/theme/ChatWindow/styles.module.css */
+.chatWindow {
+  position: fixed;
+  bottom: calc(20px + 60px + 10px); /* Button bottom + button height + margin */
+  right: 20px;
+  background-color: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: var(--ifm-global-radius);
+  box-shadow: var(--ifm-global-shadow-lw);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1000; /* Below ChatButton but above most other content */
+}
+
+.chatHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background-color: var(--ifm-color-emphasis-100);
+  border-bottom: 1px solid var(--ifm-color-emphasis-300);
+}
+
+.chatHeader h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: var(--ifm-color-content);
+  cursor: pointer;
+  padding: 0.25rem;
+  line-height: 1;
+}
+
+.closeButton:hover {
+  color: var(--ifm-color-primary);
+}
+
+.messageList {
+  flex-grow: 1;
+  padding: 1rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  max-width: 85%;
+}
+
+.message.user {
+  align-self: flex-end;
+}
+
+.message.assistant {
+  align-self: flex-start;
+}
+
+.messageBubble {
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--ifm-global-radius);
+  word-wrap: break-word; /* Ensure long words don't overflow */
+  line-height: 1.4;
+}
+
+.message.user .messageBubble {
+  background-color: var(--ifm-color-primary);
+  color: var(--ifm-button-color); /* Assuming button color is contrasting */
+  border-bottom-right-radius: 0;
+}
+
+.message.assistant .messageBubble {
+  background-color: var(--ifm-color-emphasis-200);
+  color: var(--ifm-color-content);
+  border-bottom-left-radius: 0;
+}
+
+.messageTimestamp {
+  font-size: 0.7rem;
+  color: var(--ifm-color-gray-600);
+  margin-top: 0.25rem;
+  padding: 0 0.25rem;
+}
+
+.message.user .messageTimestamp {
+  align-self: flex-end;
+}
+
+.message.assistant .messageTimestamp {
+  align-self: flex-start;
+}
+
+
+.chatInputArea {
+  display: flex;
+  align-items: flex-start; /* Align items to the start for multi-line textarea */
+  padding: 0.75rem;
+  border-top: 1px solid var(--ifm-color-emphasis-300);
+  background-color: var(--ifm-color-emphasis-100);
+}
+
+.chatInput {
+  flex-grow: 1;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--ifm-global-radius);
+  border: 1px solid var(--ifm-color-emphasis-300);
+  resize: none; /* Prevent manual resizing */
+  font-family: var(--ifm-font-family-base);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  max-height: 100px; /* Limit growth of textarea */
+  overflow-y: auto; /* Allow scrolling within textarea if content is too long */
+}
+
+.chatInput:focus {
+  border-color: var(--ifm-color-primary);
+  box-shadow: 0 0 0 1px var(--ifm-color-primary-light);
+}
+
+.chatInput:disabled {
+  background-color: var(--ifm-color-emphasis-200);
+  cursor: not-allowed;
+}
+
+.sendButton {
+  background-color: var(--ifm-color-primary);
+  color: var(--ifm-button-color);
+  border: none;
+  border-radius: var(--ifm-global-radius);
+  padding: 0.5rem; /* Make it squarer for an icon */
+  margin-left: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-end; /* Align button to bottom of textarea */
+  height: calc(0.5rem * 2 + 20px); /* padding + icon height (approx) */
+}
+
+.sendButton:hover {
+  background-color: var(--ifm-color-primary-dark);
+}
+
+.sendButton:disabled {
+  background-color: var(--ifm-color-emphasis-500);
+  cursor: not-allowed;
+}
+
+.loader {
+  border: 3px solid var(--ifm-color-emphasis-300); /* Light grey */
+  border-top: 3px solid var(--ifm-color-primary); /* Blue */
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

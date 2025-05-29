@@ -1,0 +1,39 @@
+/* src/theme/ChatButton/styles.module.css */
+.chatButton {
+  padding: 0.5rem 1rem;
+  border-radius: var(--ifm-button-border-radius);
+  background-color: var(--ifm-color-primary);
+  color: var(--ifm-button-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--ifm-global-shadow-lw);
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  z-index: 1001; /* Ensure it's above most other content */
+}
+
+.chatButton:hover {
+  background-color: var(--ifm-color-primary-dark);
+  box-shadow: var(--ifm-global-shadow-md);
+}
+
+.chatButtonIcon {
+  width: 24px; /* Adjust as needed */
+  height: 24px; /* Adjust as needed */
+  margin-right: 0; /* Default, changed if label exists */
+}
+
+.chatButtonLabel {
+  margin-left: 0.5rem;
+  font-weight: var(--ifm-button-font-weight);
+}
+
+.chatButtonIcon + .chatButtonLabel {
+  margin-left: 0.5rem; /* Ensure space if both icon and label are present */
+}
+
+/* If only icon, no extra margin needed for the icon itself */
+.chatButtonIcon:only-child {
+  margin-right: 0;
+}
