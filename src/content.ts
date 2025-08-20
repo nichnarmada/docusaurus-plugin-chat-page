@@ -4,8 +4,6 @@ import * as path from "path"
 import type { FileNode, ChatPluginContent, OpenAIConfig } from "./types"
 import { glob } from "glob"
 import matter from "gray-matter"
-import { remark } from "remark"
-import strip from "strip-markdown"
 import OpenAI from "openai"
 import process from "process"
 import { createAIService } from "./services/ai"
@@ -103,6 +101,9 @@ function splitIntoChunks(text: string, maxChunkSize: number = 1500): string[] {
   return chunks
 }
 
+// Helper function to dynamically import ESM modules in CommonJS
+const dynamicImport = new Function("specifier", "return import(specifier)")
+
 /**
  * Process markdown content into plain text and extract frontmatter
  */
@@ -110,11 +111,18 @@ async function processMarkdown(content: string): Promise<{
   plainText: string
   frontmatter: Record<string, any>
 }> {
+  // Dynamically import ESM modules using Function constructor to avoid TypeScript transformation
+  const remarkModule = (await dynamicImport("remark")) as any
+  const stripModule = (await dynamicImport("strip-markdown")) as any
+
   // Extract frontmatter using gray-matter
   const { data: frontmatter, content: markdownContent } = matter(content)
 
   // Convert markdown to plain text
-  const file = await remark().use(strip).process(markdownContent)
+  const file = await remarkModule
+    .remark()
+    .use(stripModule.default)
+    .process(markdownContent)
   const plainText = String(file)
 
   return {

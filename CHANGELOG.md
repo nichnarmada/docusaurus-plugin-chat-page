@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.7] - 2024-12-13
+
+### Fixed
+
+- Fixed ESM/CommonJS compatibility issue with `remark` and `strip-markdown` packages
+- Resolved `Error [ERR_REQUIRE_ESM]` when using the plugin with ESM-only dependencies
+- Changed static imports to dynamic imports using Function constructor to prevent TypeScript transformation
+- Ensures compatibility with both older and newer versions of remark ecosystem packages
+
 ## [0.1.4] - 2024-03-22
 
 ### Security

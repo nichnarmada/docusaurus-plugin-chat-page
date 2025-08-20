@@ -1,6 +1,6 @@
 {
   "name": "docusaurus-plugin-chat-page",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "A Docusaurus plugin for adding an AI-powered chat interface to your documentation",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
