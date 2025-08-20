@@ -16,6 +16,8 @@
   ],
   "dependencies": {
     "@docusaurus/utils": "^3.7.0",
+    "@types/dompurify": "^3.0.5",
+    "dompurify": "^3.2.6",
     "gray-matter": "^4.0.3",
     "openai": "^4.85.2",
     "react-markdown": "^10.0.0",
