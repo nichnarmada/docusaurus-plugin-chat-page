@@ -5,7 +5,7 @@ import useIsBrowser from "@docusaurus/useIsBrowser"
 import type { DocumentChunk, DocumentChunkWithEmbedding } from "../../types"
 import styles from "./styles.module.css"
 import { cosineSimilarity } from "../../utils/vector"
-import ReactMarkdown from "react-markdown"
+import { SecureMarkdown } from "./SecureMarkdown"
 import { createAIService } from "../../services/ai"
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions"
 
@@ -504,7 +504,7 @@ ${contextText}`,
                   }`}
                 >
                   <div className={styles.messageContent}>
-                    <ReactMarkdown>{message.content}</ReactMarkdown>
+                    <SecureMarkdown>{message.content}</SecureMarkdown>
                   </div>
                   <div className={styles.messageTimestamp}>
                     {message.timestamp.toLocaleTimeString()}
