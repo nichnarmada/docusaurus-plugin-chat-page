@@ -144,8 +144,7 @@ const secureComponents: Components = {
   img: ({ src, alt, ...props }) => {
     // Only allow HTTPS images
     const isSafeImage =
-      src &&
-      (src.startsWith("https://") || src.startsWith("/")) // Allow relative paths from same domain
+      src && (src.startsWith("https://") || src.startsWith("/")) // Allow relative paths from same domain
 
     if (!isSafeImage) {
       // Return a placeholder for unsafe images
