@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.1.7] - 2024-12-13
+## [0.1.7] - 2025-08-20
 
 ### Fixed
 
@@ -9,7 +9,15 @@
 - Changed static imports to dynamic imports using Function constructor to prevent TypeScript transformation
 - Ensures compatibility with both older and newer versions of remark ecosystem packages
 
-## [0.1.4] - 2024-03-22
+### Security
+
+- Added XSS protection for chat messages using DOMPurify and SecureMarkdown component
+- Prevents script injection, event handlers, and malicious JavaScript URLs in chat content
+- Implements strict HTML/attribute allowlisting and URL scheme validation
+- Blocks dangerous elements (script, iframe, object) and event handlers (onclick, onerror, etc.)
+- Added comprehensive security documentation in SECURITY.md
+
+## [0.1.4] - 2025-03-22
 
 ### Security
 
@@ -19,7 +27,7 @@
 - Added mandatory documentation citation requirement for all responses
 - Implemented strict role enforcement to prevent AI impersonation
 
-## [0.1.3] - 2024-03-22
+## [0.1.3] - 2025-03-22
 
 ### Added
 
@@ -39,7 +47,7 @@
 - Modified delete button visibility for better discoverability
 - Improved TypeScript type declarations for CSS modules
 
-## [0.1.2] - 2024-03-21
+## [0.1.2] - 2025-03-21
 
 ### Added
 
@@ -51,7 +59,7 @@
   - Links and emphasis (bold/italic) text
   - Theme-aware colors and spacing
 
-## [0.1.1] - 2024-03-21
+## [0.1.1] - 2025-03-21
 
 ### Performance Improvements
 
