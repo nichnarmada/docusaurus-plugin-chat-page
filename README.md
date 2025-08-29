@@ -1,4 +1,4 @@
-# docusaurus-plugin-chat-page
+# 🦖 🤖 docusaurus-plugin-chat-page
 
 A Docusaurus plugin that adds an AI-powered chat interface to your documentation site. Users can ask questions about your documentation and receive contextually relevant answers powered by OpenAI's GPT models.
 
@@ -80,6 +80,51 @@ module.exports = {
 }
 ```
 
+## Development Mode
+
+To develop and test the chat interface without incurring OpenAI API costs, you can enable development mode:
+
+```js
+module.exports = {
+  // ...
+  plugins: [
+    [
+      "docusaurus-plugin-chat-page",
+      {
+        path: "chat",
+        development: {
+          mockData: true, // Enable mock data for development
+        },
+      },
+    ],
+  ],
+}
+```
+
+### What Development Mode Does
+
+When `mockData: true` is set:
+
+- **No API key required**: The plugin works without an OpenAI API key
+- **Mock embeddings**: Generates deterministic fake embeddings for documentation
+- **Mock responses**: Returns development-mode responses instead of real AI answers
+- **Visual indicator**: Shows a banner indicating development mode is active
+- **Cost-free**: No OpenAI API calls are made
+
+### Use Cases
+
+- **Local development**: Test UI/UX without API costs
+- **Team collaboration**: Developers can work without sharing API keys
+- **CI/CD**: Build and test in pipelines without secrets
+- **Demos**: Create screenshots and demos without real API calls
+
+### Important Notes
+
+- Development mode is for testing only - responses are not real AI answers
+- A warning banner appears in the UI when mock data is enabled
+- Console warnings will indicate when mock services are being used
+- Production builds with `mockData: true` will show a warning
+
 ## Environment Variables
 
 Create a `.env` file in your project root:
@@ -107,7 +152,7 @@ Users can:
 
 - Docusaurus v2 or higher
 - Node.js 16 or higher
-- OpenAI API key
+- OpenAI API key (required for production; optional in development mode)
 
 ## Security
 

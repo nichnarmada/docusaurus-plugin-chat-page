@@ -177,14 +177,19 @@ export default function ChatPage(): JSX.Element {
       lastUpdated: string
     }
     config: {
-      openai: {
+      openai?: {
         apiKey: string
+      }
+      development?: {
+        mockData: boolean
       }
     }
   }
 
+  const useMockData = config?.development?.mockData === true
+
   // Check for required data
-  if (!chunks || !metadata || !config?.openai?.apiKey) {
+  if (!chunks || !metadata || (!useMockData && !config?.openai?.apiKey)) {
     return (
       <Layout title="Chat" description="Chat with your documentation">
         <div className="container margin-vert--lg">
@@ -194,7 +199,9 @@ export default function ChatPage(): JSX.Element {
             <ul>
               {!chunks && <li>Document chunks</li>}
               {!metadata && <li>Metadata</li>}
-              {!config?.openai?.apiKey && <li>OpenAI API key</li>}
+              {!useMockData && !config?.openai?.apiKey && (
+                <li>OpenAI API key (or enable mock data)</li>
+              )}
             </ul>
           </div>
         </div>
@@ -202,7 +209,7 @@ export default function ChatPage(): JSX.Element {
     )
   }
 
-  const aiService = createAIService(config.openai)
+  const aiService = createAIService(config?.openai, useMockData)
 
   const findRelevantChunks = async (query: string, topK: number = 3) => {
     try {
@@ -439,6 +446,14 @@ ${contextText}`,
     <Layout title="Chat" description="Chat with your documentation">
       <div className="container margin-vert--lg">
         <h1>Chat with Documentation</h1>
+
+        {/* Development mode indicator */}
+        {useMockData && (
+          <div className={styles.devModeBanner}>
+            🚧 Development Mode - Using mock data (no API calls)
+          </div>
+        )}
+
         <p>
           Ask questions about your documentation and get AI-powered answers.
           {metadata.totalChunks} chunks of documentation indexed, last updated{" "}
