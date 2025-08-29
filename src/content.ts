@@ -1,7 +1,12 @@
 import { LoadContext } from "@docusaurus/types"
 import * as fs from "fs/promises"
 import * as path from "path"
-import type { FileNode, ChatPluginContent, OpenAIConfig } from "./types"
+import type {
+  FileNode,
+  ChatPluginContent,
+  OpenAIConfig,
+  DevelopmentConfig,
+} from "./types"
 import { glob } from "glob"
 import matter from "gray-matter"
 import OpenAI from "openai"
@@ -134,14 +139,20 @@ async function processMarkdown(content: string): Promise<{
 /**
  * Process a directory and build a tree structure
  */
-export async function processDirectory(dir: string): Promise<FileNode[]> {
+export async function processDirectory(
+  dir: string,
+  isDevelopmentMode: boolean = false
+): Promise<FileNode[]> {
   try {
     const files = glob.sync("**/*.{md,mdx}", {
       cwd: dir,
       absolute: false,
     })
 
-    console.log(`\nProcessing ${files.length} markdown files from ${dir}...`)
+    // Simplify output in development mode
+    if (!isDevelopmentMode) {
+      console.log(`\nProcessing ${files.length} markdown files from ${dir}...`)
+    }
 
     const tree = pathsToTree(files, dir)
     let processedFiles = 0
@@ -158,10 +169,14 @@ export async function processDirectory(dir: string): Promise<FileNode[]> {
             rawContent: plainText,
           }
           processedFiles++
-          const progress = Math.round((processedFiles / totalFiles) * 100)
-          process.stdout.write(
-            `\rProgress: ${progress}% (${processedFiles}/${totalFiles} files)`
-          )
+
+          // Only show progress in production mode
+          if (!isDevelopmentMode) {
+            const progress = Math.round((processedFiles / totalFiles) * 100)
+            process.stdout.write(
+              `\rProgress: ${progress}% (${processedFiles}/${totalFiles} files)`
+            )
+          }
         } catch (error) {
           console.error(`\nError processing file ${node.path}:`, error)
         }
@@ -175,7 +190,10 @@ export async function processDirectory(dir: string): Promise<FileNode[]> {
 
     // Process all root nodes
     await Promise.all(tree.map(processNode))
-    console.log("\nFile processing complete!")
+
+    if (!isDevelopmentMode) {
+      console.log("\nFile processing complete!")
+    }
 
     return tree
   } catch (error) {
@@ -219,17 +237,25 @@ function treeToFlatList(
  */
 async function generateEmbeddings(
   chunks: Array<{ text: string; metadata: Record<string, any> }>,
-  openAIConfig: OpenAIConfig,
+  openAIConfig: OpenAIConfig | undefined,
+  useMockData: boolean,
   batchSize: number = 10
 ) {
-  const aiService = createAIService(openAIConfig)
+  const aiService = createAIService(openAIConfig, useMockData)
   const results = []
   const totalChunks = chunks.length
   let processedChunks = 0
 
-  console.log(
-    `\nGenerating embeddings for ${totalChunks} chunks in batches of ${batchSize}...`
-  )
+  if (useMockData) {
+    // Colored [MOCK] text for development mode
+    console.log(
+      `\n\x1b[33m[MOCK]\x1b[0m Generating fake embeddings for ${totalChunks} chunks...`
+    )
+  } else {
+    console.log(
+      `\nGenerating embeddings for ${totalChunks} chunks in batches of ${batchSize}...`
+    )
+  }
 
   for (let i = 0; i < chunks.length; i += batchSize) {
     const batch = chunks.slice(i, i + batchSize)
@@ -247,13 +273,17 @@ async function generateEmbeddings(
       }
 
       processedChunks += batch.length
-      const progress = Math.round((processedChunks / totalChunks) * 100)
-      const memoryUsage = Math.round(
-        process.memoryUsage().heapUsed / 1024 / 1024
-      )
-      process.stdout.write(
-        `\rProgress: ${progress}% (${processedChunks}/${totalChunks} chunks) - Memory: ${memoryUsage}MB`
-      )
+
+      // Only show detailed progress in production mode
+      if (!useMockData) {
+        const progress = Math.round((processedChunks / totalChunks) * 100)
+        const memoryUsage = Math.round(
+          process.memoryUsage().heapUsed / 1024 / 1024
+        )
+        process.stdout.write(
+          `\rProgress: ${progress}% (${processedChunks}/${totalChunks} chunks) - Memory: ${memoryUsage}MB`
+        )
+      }
 
       // Clear temporary arrays to help with garbage collection
       batch.length = 0
@@ -267,7 +297,11 @@ async function generateEmbeddings(
     }
   }
 
-  console.log("\nEmbeddings generation complete!")
+  if (useMockData) {
+    console.log("\x1b[32m✓\x1b[0m Mock embeddings generated successfully!")
+  } else {
+    console.log("\nEmbeddings generation complete!")
+  }
   return results
 }
 
@@ -275,33 +309,50 @@ async function generateEmbeddings(
  * Load all content and prepare for embedding generation
  */
 export async function loadContent(
-  context: LoadContext & { options?: { openai?: OpenAIConfig } }
+  context: LoadContext & {
+    options?: {
+      openai?: OpenAIConfig
+      development?: DevelopmentConfig
+    }
+  }
 ): Promise<ChatPluginContent> {
   const { siteDir, options } = context
+  const useMockData = options?.development?.mockData === true
 
-  if (!options?.openai?.apiKey) {
-    throw new Error(
-      "OpenAI API key is required. Please add it to your docusaurus.config.js"
-    )
+  if (!useMockData && !options?.openai?.apiKey) {
+    throw new Error("OpenAI API key is required when not using mock data")
   }
 
-  console.log("\n=== Starting content processing ===")
+  // Colored console output for development mode
+  if (useMockData) {
+    console.log(
+      "\n" +
+        "\x1b[43m\x1b[30m DEVELOPMENT MODE \x1b[0m" +
+        " Using mock data - no API calls will be made\n"
+    )
+  } else {
+    console.log("\n=== Starting content processing ===")
+  }
 
   const docsDir = path.join(siteDir, "docs")
   const pagesDir = path.join(siteDir, "src/pages")
 
   // Get the tree structures
   const [docsTree, pagesTree] = await Promise.all([
-    processDirectory(docsDir),
-    processDirectory(pagesDir),
+    processDirectory(docsDir, useMockData),
+    processDirectory(pagesDir, useMockData),
   ])
 
   // Convert trees to flat lists and combine
   const allFiles = [...treeToFlatList(docsTree), ...treeToFlatList(pagesTree)]
-  console.log(`\nFound ${allFiles.length} total files to process`)
 
-  // Process each file into chunks with metadata
-  console.log("\nSplitting content into chunks...")
+  if (useMockData) {
+    console.log(`Processing ${allFiles.length} documentation files...`)
+  } else {
+    console.log(`\nFound ${allFiles.length} total files to process`)
+    console.log("\nSplitting content into chunks...")
+  }
+
   let processedForChunking = 0
   const totalForChunking = allFiles.length
   const MAX_CHUNKS_PER_FILE = 10
@@ -328,32 +379,52 @@ export async function loadContent(
     }
 
     processedForChunking++
-    const progress = Math.round((processedForChunking / totalForChunking) * 100)
-    const memoryUsage = Math.round(process.memoryUsage().heapUsed / 1024 / 1024)
-    process.stdout.write(
-      `\rProgress: ${progress}% (${processedForChunking}/${totalForChunking} files chunked) - Memory: ${memoryUsage}MB`
-    )
+
+    // Only show detailed progress in production mode
+    if (!useMockData) {
+      const progress = Math.round(
+        (processedForChunking / totalForChunking) * 100
+      )
+      const memoryUsage = Math.round(
+        process.memoryUsage().heapUsed / 1024 / 1024
+      )
+      process.stdout.write(
+        `\rProgress: ${progress}% (${processedForChunking}/${totalForChunking} files chunked) - Memory: ${memoryUsage}MB`
+      )
+    }
 
     // Clear the temporary arrays to help with garbage collection
     textChunks.length = 0
     limitedChunks.length = 0
   }
 
-  console.log(
-    `\nContent splitting complete! Generated ${allChunks.length} total chunks`
-  )
+  if (!useMockData) {
+    console.log(
+      `\nContent splitting complete! Generated ${allChunks.length} total chunks`
+    )
+  }
 
   // Generate embeddings for all chunks
   const chunksWithEmbeddings = await generateEmbeddings(
     allChunks,
-    options.openai!,
+    options?.openai,
+    useMockData,
     10
   )
 
-  console.log("\n=== Content processing complete! ===")
-  console.log(`Total files processed: ${allFiles.length}`)
-  console.log(`Total chunks generated: ${allChunks.length}`)
-  console.log(`Total embeddings created: ${chunksWithEmbeddings.length}`)
+  if (useMockData) {
+    console.log(
+      "\n\x1b[42m\x1b[30m COMPLETE \x1b[0m Development build ready with mock data!"
+    )
+    console.log(
+      `📚 ${allFiles.length} files | 📄 ${allChunks.length} chunks | 🎯 ${chunksWithEmbeddings.length} mock embeddings`
+    )
+  } else {
+    console.log("\n=== Content processing complete! ===")
+    console.log(`Total files processed: ${allFiles.length}`)
+    console.log(`Total chunks generated: ${allChunks.length}`)
+    console.log(`Total embeddings created: ${chunksWithEmbeddings.length}`)
+  }
 
   return {
     chunks: chunksWithEmbeddings,

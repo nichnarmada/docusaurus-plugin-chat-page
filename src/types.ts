@@ -51,8 +51,13 @@ export interface OpenAIConfig {
   apiKey: string
 }
 
+export interface DevelopmentConfig {
+  mockData: boolean
+}
+
 export interface PluginOptions {
   label?: string
   path?: string
   openai?: OpenAIConfig
+  development?: DevelopmentConfig
 }
