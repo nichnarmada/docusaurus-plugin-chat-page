@@ -1,82 +1,56 @@
 # Changelog
 
-## [0.1.7] - 2025-08-20
+All notable changes to this project will be documented in this file.
 
-### Fixed
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-- Fixed ESM/CommonJS compatibility issue with `remark` and `strip-markdown` packages
-- Resolved `Error [ERR_REQUIRE_ESM]` when using the plugin with ESM-only dependencies
-- Changed static imports to dynamic imports using Function constructor to prevent TypeScript transformation
-- Ensures compatibility with both older and newer versions of remark ecosystem packages
-
-### Security
-
-- Added XSS protection for chat messages using DOMPurify and SecureMarkdown component
-- Prevents script injection, event handlers, and malicious JavaScript URLs in chat content
-- Implements strict HTML/attribute allowlisting and URL scheme validation
-- Blocks dangerous elements (script, iframe, object) and event handlers (onclick, onerror, etc.)
-- Added comprehensive security documentation in SECURITY.md
-
-## [0.1.4] - 2025-03-22
-
-### Security
-
-- Enhanced system prompt with strict guardrails to prevent off-topic discussions
-- Added explicit rules to ensure AI responses stay within documentation context
-- Improved response filtering to reject prompt injection attempts
-- Added mandatory documentation citation requirement for all responses
-- Implemented strict role enforcement to prevent AI impersonation
-
-## [0.1.3] - 2025-03-22
+## [0.2.0] - 2024-12-16
 
 ### Added
-
-- Added persistent chat storage using localStorage
-- Multiple chat instances now persist across page refreshes
-- Chat history and active chat selection are preserved
-- Added error handling for storage operations
-- Improved state initialization to handle SSR correctly
-- Added chat grouping by date (Today, Yesterday, Month/Year)
-- Added timestamps (createdAt, updatedAt) to chat instances
-- Chats are now sorted by most recent activity
-- Improved chat deletion UX with always-visible delete buttons
+- **Development Mode**: New `development.mockData` configuration option that enables development without OpenAI API keys
+  - Generate deterministic mock embeddings for documentation chunks
+  - Provide mock chat responses for testing UI/UX
+  - No API costs during development
+  - Clear visual indicators when using mock data
+  - Colored console output for better development experience
+  - Simplified logging in development mode
 
 ### Changed
+- API key is now optional when `development.mockData` is enabled
+- Improved console output with color coding for different modes
+- Enhanced error messages to guide users on configuration options
 
-- Updated chat list UI with date-based grouping headers
-- Modified delete button visibility for better discoverability
-- Improved TypeScript type declarations for CSS modules
+### Developer Experience
+- Frontend developers can now work without backend credentials
+- Faster build times in development (no API calls)
+- CI/CD friendly - can build without secrets
+- Team collaboration improved - no need to share API keys
 
-## [0.1.2] - 2025-03-21
+## [0.1.8] - 2024-12-16
 
-### Added
+### Changed
+- Migrated from Yarn to npm for package management
+- Removed outdated documentation files
+- Cleaned up repository structure
 
-- Added markdown rendering support for chat messages using react-markdown
-- Added comprehensive styling for markdown elements in chat messages:
-  - Proper formatting for headings, paragraphs, and lists
-  - Code blocks and inline code with syntax highlighting
-  - Blockquotes with theme-aware styling
-  - Links and emphasis (bold/italic) text
-  - Theme-aware colors and spacing
+## [0.1.7] - 2024-12-14
 
-## [0.1.1] - 2025-03-21
+### Fixed
+- XSS security vulnerability with DOMPurify integration
+- ESM/CommonJS compatibility issues with remark and strip-markdown
+- TypeScript compilation errors in SecureMarkdown component
 
-### Performance Improvements
+### Security
+- Added secure markdown rendering to prevent XSS attacks
+- Implemented content sanitization for user inputs
 
-- Reduced memory usage during build time to prevent Out of Memory (OOM) errors
-- Increased default chunk size from 1000 to 1500 characters
-- Limited maximum chunks per file to 10
-- Reduced embedding batch size from 20 to 10
-- Implemented sequential file processing instead of parallel processing
-- Added memory usage tracking in progress logs
-- Added garbage collection optimizations
+## [0.1.6] - 2024-12-13
 
-## [0.1.0] - Initial Release
+### Fixed
+- Build issues with incorrect imports
+- Module resolution problems
 
-### Added
+## Previous Versions
 
-- Initial release of the Docusaurus Chat Page plugin
-- AI-powered chat interface for documentation
-- OpenAI integration for embeddings and chat
-- Build-time content processing
-- Client-side similarity search
+For earlier versions, please refer to the git history.
