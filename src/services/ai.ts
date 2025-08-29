@@ -1,6 +1,7 @@
 import OpenAI from "openai"
 import type { OpenAIConfig } from "../types"
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions"
+import { MockAIService } from "./mockAi"
 
 export interface AIService {
   generateEmbeddings(texts: string[]): Promise<number[][]>
@@ -9,7 +10,18 @@ export interface AIService {
   ): AsyncGenerator<string, void, unknown>
 }
 
-export function createAIService(config: OpenAIConfig): AIService {
+export function createAIService(
+  config: OpenAIConfig | undefined,
+  useMockData: boolean = false
+): AIService {
+  if (useMockData) {
+    return new MockAIService()
+  }
+
+  if (!config?.apiKey) {
+    throw new Error("OpenAI API key is required when not using mock data")
+  }
+
   const client = new OpenAI({
     apiKey: config.apiKey,
     dangerouslyAllowBrowser: true,
